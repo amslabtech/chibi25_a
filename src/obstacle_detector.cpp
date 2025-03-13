@@ -12,7 +12,7 @@ ObstacleDetector::ObstacleDetector()
     obstacle_points_pub_ = this->create_publisher<geometry_msgs::msg::PointStamped>("obstacle_points", 10);
 }
 
-//Lidarから障害物の情報を取得
+//LiDARから障害物の情報を取得
 void ObstacleDetector::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 {
     // msgを取得
@@ -26,7 +26,7 @@ void ObstacleDetector::process()
     scan_obstacle();  
 }
 
-//Lidarから障害物情報を取得し，障害物の座標をpublish　※メッセージの型は自分で決めてください
+//LiDARから障害物情報を取得し，障害物の座標をpublish　※メッセージの型は自分で決めてください
 void ObstacleDetector::scan_obstacle()
 {
     if (!laserscan_.has_value()) return;
@@ -62,10 +62,10 @@ void ObstacleDetector::scan_obstacle()
 }
 
 
-//無視するlidar情報の範囲の決定(lidarがroombaの櫓の中にあり，櫓の４つの柱を障害物として検出してしまうため削除が必要)
+//無視するLiDAR情報の範囲の決定(LiDARがroombaの櫓の中にあり，櫓の４つの柱を障害物として検出してしまうため削除が必要)
 bool ObstacleDetector::is_ignore_scan(float distance, float angle)
 {
-    // 無視する柱の位置（Lidar中心から半径10cm付近）
+    // 無視する柱の位置（LiDAR中心から半径10cm付近）
     const float IGNORE_RADIUS = 0.1; // 10cm
     const float TOLERANCE = 0.02; // 許容誤差 2cm
 

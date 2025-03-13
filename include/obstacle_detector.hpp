@@ -1,5 +1,5 @@
-#ifndef obstacle_detector_HPP
-#define obstacle_detector_HPP
+#ifndef OBSTACLE_DETECTOR_HPP
+#define OBSTACLE_DETECTOR_HPP
 
 #include <chrono>
 #include <cmath>  // M_PIやsin, cosを使うのに必要
