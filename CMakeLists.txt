@@ -5,9 +5,9 @@ project(team_obstacle_detector)
 
 # find dependencies
 find_package(ament_cmake_auto REQUIRED)
-find_package(rclcpp REQUIRED)  # 追加
-find_package(sensor_msgs REQUIRED)  # 追加
-find_package(geometry_msgs REQUIRED)  # 追加
+# find_package(rclcpp REQUIRED)  # 追加
+# find_package(sensor_msgs REQUIRED)  # 追加
+# find_package(geometry_msgs REQUIRED)  # 追加
 
 # package.xmlのdependをチェックして自動的にfind_packageしてくれる
 ament_auto_find_build_dependencies()
