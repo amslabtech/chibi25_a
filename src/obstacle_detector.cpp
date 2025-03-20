@@ -41,7 +41,7 @@ void ObstacleDetector::process()
     scan_obstacle();  
 }
 
-//LiDARから障害物情報を取得し，障害物の座標をpublish　※メッセージの型は自分で決めてください
+//LiDARから障害物情報を取得し，障害物の座標をpublish
 void ObstacleDetector::scan_obstacle()
 {
     if (!laserscan_.has_value()) return;
