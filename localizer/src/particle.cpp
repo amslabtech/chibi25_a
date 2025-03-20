@@ -3,25 +3,27 @@
 // デフォルトコンストラクタ
 Particle::Particle() : pose_(0.0, 0.0, 0.0)
 {
-
+        weight_ = 0.0;
 }
 
 // コンストラクタ
 Particle::Particle(const double x, const double y, const double yaw, const double weight) : pose_(x, y, yaw)
 {
-
+        weight_ = weight;
 }
 
 // 代入演算子
 Particle& Particle::operator =(const Particle& p)
 {
-
+        pose_ = p.pose_;
+        weight_ = p.weight_;
+        return *this;
 }
 
 // setter
 void Particle::set_weight(const double weight)
 {
-
+        weight_ = weight;
 }
 
 // 尤度関数
@@ -77,5 +79,5 @@ bool Particle::in_map(const int grid_index, const int map_data_size)
 // 確率密度関数（正規分布）
 double Particle::norm_pdf(const double x, const double mean, const double stddev)
 {
-
+        return exp(-0.5*pow((x-mean)/stddev, 2.0)/(stddev*sqrt(2*M_PI)));
 }
