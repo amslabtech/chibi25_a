@@ -111,8 +111,8 @@ DWAPlanner::DWAPlanner() : Node("local_path_planner"), clock_(RCL_ROS_TIME)
     [this](const geometry_msgs::msg::PoseArray::SharedPtr msg) {this->obs_poses_callback(msg);});
     // ###### Publisher ######
     pub_cmd_speed_ = this->create_publisher<roomba_500driver_meiji::msg::RoombaCtrl>("/roomba/control", rclcpp::QoS(1).reliable()); 
-    pub_optimal_path_ = this->create_publisher<nav_msgs::msg::Path>("", 10);
-    pub_predict_path_ = this->create_publisher<nav_msgs::msg::Path>("", 10);
+    pub_optimal_path_ = this->create_publisher<nav_msgs::msg::Path>("optimal_path", 10);
+    pub_predict_path_ = this->create_publisher<nav_msgs::msg::Path>("predict_path", 10);
 }
 
 // local_goalのコールバック関数
