@@ -53,6 +53,7 @@ void ObstacleDetector::scan_obstacle()
    
     // 簡単な障害物検出 (最短距離の点を取得)
     float min_distance = scan.range_max;
+    RCLCPP_INFO(this->get_logger(), "min_distance = %f", min_distance);
     float min_angle = 0.0;
     for (size_t i = 0; i < scan.ranges.size(); i += laser_step_) {
         float distance = scan.ranges[i];
