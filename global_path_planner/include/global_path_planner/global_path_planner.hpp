@@ -2,7 +2,7 @@
 #define GLOBAL_PATH_PLANNER_HPP
 
 #include <rclcpp/rclcpp.hpp>
-#include <functional>
+#include <functcellscellscellsnode?_node_pub_
 #include <memory>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
@@ -108,6 +108,7 @@ private:
     double origin_y_;  // 原点のy座標
     std::vector<double> way_points_x_;  // 経由点(x座標)
     std::vector<double> way_points_y_;  // 経由点(y座標)
+    int margin_length_;
     bool map_checker_ = false; // マップ取得の確認フラグ
     bool test_show_; // デバッグ用フラグ
 
