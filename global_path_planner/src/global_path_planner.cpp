@@ -33,9 +33,9 @@ Astar::Astar() : Node("team_a_path_planner"), clock_(RCL_ROS_TIME)
 
     // ###### Publisher ######
 
-    pub_path_ = create_publisher<nav_msgs::msg::Path>("/global_path", 1);// 最終的な経路
-    pub_node_point_ = create_publisher<geometry_msgs::msg::PointStamped>("/current_node", 1);// 現在のノード（デバッグ用）
-    pub_current_path_ = create_publisher<nav_msgs::msg::Path>("/current_path", 1);// 現在の部分経路（デバッグ用）
+    pub_path_ = this->create_publisher<nav_msgs::msg::Path>("/global_path",rclcpp::QoS(1).reliable());// 最終的な経路
+    pub_node_point_ = this->create_publisher<geometry_msgs::msg::PointStamped>("/current_node", rclcpp::QoS(1).reliable());// 現在のノード（デバッグ用）
+    pub_current_path_ = this->create_publisher<nav_msgs::msg::Path>("/current_path", rclcpp::QoS(1).reliable());// 現在の部分経路（デバッグ用）
     pub_new_map_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("/map/new_map", rclcpp::QoS(1).reliable());// 拡張後のマップ
 }
 
