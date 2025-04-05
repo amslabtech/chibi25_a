@@ -4,18 +4,18 @@ using namespace std::chrono_literals;
 
 // デフォルトコンストラクタ
 // パラメータの宣言と取得
-Astar::Astar() : Node("team_path_planner"), clock_(RCL_ROS_TIME)
+Astar::Astar() : Node("team_a_path_planner"), clock_(RCL_ROS_TIME)
 {
     // ###### パラメータの宣言 ######
-    declare_parameter<double>("resolution", 0.05);       // マップの解像度（m/グリッド）
-    declare_parameter<int>("margin_length", 3);          // 障害物拡張マージン（グリッド数）
-    declare_parameter<std::vector<double>>("way_points_x", {700.7,1026.8,1041.7,375.1,360.6,700.7}); // ウェイポイントX座標リスト
-    declare_parameter<std::vector<double>>("way_points_y", {452.5,471.6,189.4,155.8,432.9,452.5}); // ウェイポイントY座標リスト
+    //declare_parameter<double>("resolution", 0.0);       // マップの解像度（m/グリッド）
+    declare_parameter<double>("margin_", 0.5);          // 障害物拡張マージン（グリッド数）
+    declare_parameter<std::vector<double>>("way_points_x", {700.7 ,1026.8 ,1041.7 ,375.1, 360.6, 700.7}); // ウェイポイントX座標リスト
+    declare_parameter<std::vector<double>>("way_points_y", {452.5 ,471.6 ,189.4 ,155.8, 432.9, 452.5}); // ウェイポイントY座標リスト
     declare_parameter<bool>("test_show", false);
 
     // ###### パラメータの取得 ######
-    resolution_ = get_parameter("resolution").as_double();
-    margin_length_ = get_parameter("margin_length").as_int();
+    //resolution_ = get_parameter("resolution").as_double();
+    margin_length_ = get_parameter("margin_").as_int();
     way_points_x_ = get_parameter("way_points_x").as_double_array();
     way_points_y_ = get_parameter("way_points_y").as_double_array();
     test_show_ = get_parameter("test_show").as_bool();
@@ -29,14 +29,14 @@ Astar::Astar() : Node("team_path_planner"), clock_(RCL_ROS_TIME)
 
 
     // ####### Subscriber #######
-    sub_map_ = create_subscription<nav_msgs::msg::OccupancyGrid>("/map", 1, std::bind(&Astar::map_callback, this,std::placeholders:: _1));
+    sub_map_ =  this->create_subscription<nav_msgs::msg::OccupancyGrid>("/map", rclcpp::QoS(1).reliable(),std::bind(&Astar::map_callback, this, std::placeholders::_1));
 
     // ###### Publisher ######
 
     pub_path_ = create_publisher<nav_msgs::msg::Path>("/global_path", 1);// 最終的な経路
     pub_node_point_ = create_publisher<geometry_msgs::msg::PointStamped>("/current_node", 1);// 現在のノード（デバッグ用）
     pub_current_path_ = create_publisher<nav_msgs::msg::Path>("/current_path", 1);// 現在の部分経路（デバッグ用）
-    pub_new_map_ = create_publisher<nav_msgs::msg::OccupancyGrid>("/new_map", 1);// 拡張後のマップ
+    pub_new_map_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("/map/new_map", rclcpp::QoS(1).reliable());// 拡張後のマップ
 }
 
 
@@ -79,7 +79,7 @@ void Astar::obs_expander()
 }
 
 
-// 指定されたインデックスの障害物を拡張（margin_length分）
+// 指定されたインデックスの障害物を拡張（margin_cells分）
 void Astar::obs_expand(const int index)
 {
     /* 指定インデックスの障害物を周囲に拡張:
@@ -90,8 +90,8 @@ void Astar::obs_expand(const int index)
     int margin_cells = static_cast<int>(margin_ / resolution_);  // マージンのセル数
     
     // 周囲マージン分ループ
-    for(int dx=-margin_length_; dx<=margin_length_; ++dx){
-        for(int dy=-margin_length_; dy<=margin_length_; ++dy){
+    for(int dx=-margin_cells; dx<=margin_cells; ++dx){
+        for(int dy=-margin_cells; dy<=margin_cells; ++dy){
             int nx = x + dx;    // 新しいX座標
             int ny = y + dy;    // 新しいY座標
             // マップ範囲内チェック
