@@ -23,7 +23,7 @@ class Pose
         // 適切な角度(-M_PI ~ M_PI)に変更
         void normalize_angle();
 
-    private:
+    // private:
         double x_;   // [m]
         double y_;   // [m]
         double yaw_; // [rad]
