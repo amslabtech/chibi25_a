@@ -62,10 +62,10 @@ Localizer::Localizer() : Node("team_localizer")
             &Localizer::map_callback, this, std::placeholders::_1));
     sub_odom_ = this->create_subscription<nav_msgs::msg::Odometry>(
         "/odom", rclcpp::QoS(10).reliable(), std::bind(
-            &thirdChallenge::odom_callback, this, std::placeholders::_1));
-    sub_Laser_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
+            &Localizer::odom_callback, this, std::placeholders::_1));
+    sub_laser_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
         "/scan", rclcpp::QoS(10).reliable(), std::bind(
-            &thirdChallenge::laser_callback, this, std::placeholders::_1));
+            &Localizer::laser_callback, this, std::placeholders::_1));
 
     // Publisherの設定
     pub_estimated_pose_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
@@ -81,7 +81,7 @@ Localizer::Localizer() : Node("team_localizer")
     particle_cloud_msg_.poses.reserve(max_particle_num_);
 
     // odometryのモデルの初期化
-    odom_model_.OdomModel(ff_, fr_, rf_, rr_);
+    OdomModel odom_model_(ff_, fr_, rf_, rr_);
 }
 
 // mapのコールバック関数
@@ -167,7 +167,7 @@ double Localizer::norm_rv(const double mean, const double stddev)
 void Localizer::reset_weight()
 {
     for(auto& p : particles_){
-        p.set_weight(1/particles.size());
+        p.set_weight(1/particles_.size());
     }
 }
 
@@ -183,26 +183,43 @@ void Localizer::broadcast_odom_state()
         odom_state_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
         // map座標系からみたbase_link座標系の位置と姿勢の取得
+        Pose map_to_base = estimated_pose_;
 
         // odom座標系からみたbase_link座標系の位置と姿勢の取得
+        Pose odom_to_base;
+        odom_to_base.x_ = last_odom_.pose.pose.position.x;
+        odom_to_base.y_ = last_odom_.pose.pose.position.y;
+        odom_to_base.yaw_ = tf2::getYaw(last_odom_.pose.pose.orientation);
 
         // map座標系からみたodom座標系の位置と姿勢を計算（回転行列を使った単純な座標変換）
+        const double map_to_odom_x = map_to_base.x() - odom_to_base.x();
+        const double map_to_odom_y = map_to_base.y() - odom_to_base.y();
+        const double map_to_odom_yaw = map_to_base.yaw() - odom_to_base.yaw();
 
         // yawからquaternionを作成
         tf2::Quaternion map_to_odom_quat;
+        map_to_odom_quat.setRPY(0, 0, map_to_odom_yaw);
 
         // odom座標系odomの位置姿勢情報格納するための変数
         geometry_msgs::msg::TransformStamped odom_state;
 
         // 現在の時間の格納
+        odom_state.header.stamp = get_clock()->now();
 
         // 親フレーム・子フレームの指定
         odom_state.header.frame_id = map_.header.frame_id;
         odom_state.child_frame_id  = last_odom_.header.frame_id;
 
         // map座標系からみたodom座標系の原点位置と方向の格納
+        odom_state.transform.translation.x = map_to_odom_x;
+        odom_state.transform.translation.y = map_to_odom_y;
+        odom_state.transform.rotation.x = map_to_odom_quat.x();
+        odom_state.transform.rotation.y = map_to_odom_quat.y();
+        odom_state.transform.rotation.z = map_to_odom_quat.z();
+        odom_state.transform.rotation.w = map_to_odom_quat.w();
 
         // tf情報をbroadcast(座標系の設定)
+        odom_state_broadcaster->sendTransform(odom_state);
     }
 
 }
@@ -220,8 +237,8 @@ void Localizer::localize()
 void Localizer::motion_update()
 {
     // 微小移動量の計算
-    const double prev_yaw = tf2::getYaw(prev_odom_.pose.pose.orientatin);
-    const double last_yaw = tf2::getYaw(last_odom_.pose.pose.orientatin);
+    const double prev_yaw = tf2::getYaw(prev_odom_.pose.pose.orientation);
+    const double last_yaw = tf2::getYaw(last_odom_.pose.pose.orientation);
     const double dx = last_odom_.pose.pose.position.x - prev_odom_.pose.pose.position.x;
     const double dy = last_odom_.pose.pose.position.y - prev_odom_.pose.pose.position.y;
     const double dyaw = normalize_angle(last_yaw - prev_yaw);
@@ -244,27 +261,48 @@ void Localizer::motion_update()
 // 位置推定，リサンプリングなどを行う
 void Localizer::observation_update()
 {
+    for(auto& p : particles_){
+        p.set_weight(p.weight() * p.likelihood(map_, laser_, sensor_noise_ratio_, laser_step_, ignore_angle_range_list_));
+    }
     // パーティクル1つのレーザ1本における平均尤度を算出
-    const double alpha;
+    const double alpha = calc_marginal_likelihood()/laser_.ranges.size()/particles_.size();
+
+    estimate_pose();
+    resampling(alpha_th_);
 }
 
 // 周辺尤度の算出
 double Localizer::calc_marginal_likelihood()
 {
-
+    double sum = 0.0;
+    for(auto& p : particles_){
+        sum += p.weight();
+    }
+    return sum;
 }
 
 // 推定位置の決定
 // 算出方法は複数ある（平均，加重平均，中央値など...）
 void Localizer::estimate_pose()
 {
-    
+    double estimate_x;
+    double estimate_y;
+    double estimate_yaw;
+    for(auto& p : particles_){
+        estimate_x += p.pose_.x() * p.weight();
+        estimate_y += p.pose_.y() * p.weight();
+        estimate_yaw += p.pose_.yaw() * p.weight();
+    }
+    estimated_pose_.set(estimate_x, estimate_y, estimate_yaw);
 }
 
 // 重みの正規化
 void Localizer::normalize_belief()
 {
-
+    const double weight_sum = calc_marginal_likelihood();
+    for(auto& p : particles_){
+        p.set_weight(p.weight()/weight_sum);
+    }
 }
 
 // 膨張リセット（EMCLの場合）
@@ -279,24 +317,47 @@ void Localizer::resampling(const double alpha)
 {
     // パーティクルの重みを積み上げたリストを作成
     std::vector<double> accum;
+    for(int i=0; i<particles_.size(); i++){
+        accum.push_back(accum.back() + particles_[i].weight());
+    }
 
     // サンプリングのスタート位置とステップを設定
     const std::vector<Particle> old(particles_);
     int size = particles_.size();
+    double step = accum.back() / size;
+    double start = rand()/RAND_MAX *step;
 
     // particle数の動的変更
 
     // サンプリングするパーティクルのインデックスを保持
+    std::vector<int> index;
+    int num;
+    for(int i=0; i>particles_.size(); i++)
+    {
+        while(accum[num] < start + step*i) num += 1;
+        index.push_back(num);
+    }
 
     // リサンプリング
+    for(int i=0; i<size; i++){
+        particles_[i] = old[index[i]];
+    }
 
     // 重みを初期化
+    reset_weight();
 }
 
 // 推定位置のパブリッシュ
 void Localizer::publish_estimated_pose()
 {
+    estimated_pose_msg_.pose.position.x = estimated_pose_.x();
+    estimated_pose_msg_.pose.position.y = estimated_pose_.y();
 
+    tf2::Quaternion q;
+    q.setRPY(0, 0, estimated_pose_.yaw());
+    tf2::convert(q, estimated_pose_msg_.pose.orientation);
+
+    pub_estimated_pose_ -> publish(estimated_pose_msg_);
 }
 
 // パーティクルクラウドのパブリッシュ
@@ -305,6 +366,20 @@ void Localizer::publish_particles()
 {
     if(is_visible_)
     {
-        
+        particle_cloud_msg_.poses.clear();
+        geometry_msgs::msg::Pose pose;
+
+        for(const auto& p : particles_)
+        {
+            pose.position.x = p.pose_.x();
+            pose.position.y = p.pose_.y();
+
+            tf2::Quaternion q;
+            q.setRPY(0, 0, p.pose_.yaw());
+            tf2::convert(q, pose.orientation);
+
+            particle_cloud_msg_.poses.push_back(pose);
+        }
+        pub_particle_cloud_ -> publish(particle_cloud_msg_);        
     }
 }
