@@ -8,7 +8,7 @@ Astar::Astar() : Node("team_a_path_planner"), clock_(RCL_ROS_TIME)
 {
     // ###### パラメータの宣言 ######
     //declare_parameter<double>("resolution", 0.0);       // マップの解像度（m/グリッド）
-    declare_parameter<double>("margin_", 0.5);          // 障害物拡張マージン（グリッド数）
+    declare_parameter<double>("margin_", 0.3);          // 障害物拡張マージン（グリッド数）
     declare_parameter<std::vector<double>>("way_points_x", {700.7 ,1026.8 ,1041.7 ,375.1, 360.6, 700.7}); // ウェイポイントX座標リスト
     declare_parameter<std::vector<double>>("way_points_y", {452.5 ,471.6 ,189.4 ,155.8, 432.9, 452.5}); // ウェイポイントY座標リスト
     declare_parameter<bool>("test_show", false);
@@ -120,8 +120,8 @@ Node_ Astar::set_way_point(int phase)
     1. マップ原点を考慮した座標変換
     2. グリッドインデックス計算 */
     Node_ wp;
-    wp.x = static_cast<int>((way_points_x_[phase] - origin_x_) / resolution_);
-    wp.y = static_cast<int>((way_points_y_[phase] - origin_y_) / resolution_);
+    wp.x = static_cast<int>(std::round((way_points_x_[phase] - origin_x_) / resolution_));
+    wp.y = static_cast<int>(std::round((way_points_y_[phase] - origin_y_) / resolution_));
     return wp;
 }
 
@@ -142,7 +142,7 @@ void Astar::create_path(Node_ node)
     // ###### パスの作成 ######
     // スタート地点まで遡ってパス構築
     while(!check_start(node)){
-        for(const auto& n : close_list_){
+        for(const Node_& n : close_list_){
             if(n.x == node.parent_x && n.y == node.parent_y){
                 partial_path.poses.push_back(node_to_pose(n)); // パス点追加
                 node = n;  // 親ノードに移動
@@ -192,7 +192,7 @@ Node_ Astar::select_min_f()
     /* オープンリスト内で最小f値のノードを選択:
     1. std::min_elementで最小要素検索
     2. リストから削除して返却 */
-    auto min_it = std::min_element(open_list_.begin(), open_list_.end(),
+    std::vector<Node_>::iterator min_it = std::min_element(open_list_.begin(), open_list_.end(),
         [](const Node_& a, const Node_& b){ return a.f < b.f; });
     Node_ min_node = *min_it;
     open_list_.erase(min_it); // 選択したノードをオープンリストから削除
@@ -256,6 +256,8 @@ void Astar::swap_node(const Node_ node, std::vector<Node_>& list1, std::vector<N
     if(it != list1.end()){
         list2.push_back(*it);
         list1.erase(it);
+    }else {
+        RCLCPP_WARN(get_logger(), "Node (%d, %d) not found in list", node.x, node.y);
     }
 }
 
@@ -304,13 +306,18 @@ void Astar::update_list(const Node_ node)
             open_list_[open_index] = neighbor; // コスト低い経路で更新
         }*/
 
-        auto [open_index, close_index] = search_node(neighbor);
+        //auto [open_index, close_index] = search_node(neighbor);
+        int open_index, close_index;
+        std::tie(open_index, close_index) = search_node(neighbor);
         
         if (open_index == -1 && close_index == -1) {
             open_list_.push_back(neighbor);  // 新しいノードの場合、オープンリストに追加
         } else if (open_index != -1 && neighbor.f < open_list_[open_index].f) {
             open_list_[open_index] = neighbor;  // より良いパスが見つかった場合、更新
-        }
+        } else if (close_index != -1 && neighbor.f < close_list_[close_index].f) {
+        close_list_.erase(close_list_.begin() + close_index);
+        open_list_.push_back(neighbor);
+    }
     
     }
 }
@@ -344,7 +351,7 @@ void Astar::create_neighbor_nodes(const Node_ node, std::vector<Node_>&  neighbo
             neighbor_nodes.push_back(neighbor); // 有効ノードのみ追加
         }
     }*/
-   for (const auto& m : motion_list) {
+   for (const Motion_& m : motion_list) {
         Node_ neighbor = get_neighbor_node(node, m);
         // マップ範囲内かチェック
         if (neighbor.x >= 0 && neighbor.x < width_ && 
@@ -496,11 +503,13 @@ void Astar::planning()
         start_node_ = set_way_point(phase);
         goal_node_ = set_way_point(phase + 1);
         
+        start_node_.f = make_heuristic(start_node_);
+
         open_list_.clear();
         close_list_.clear();
         open_list_.push_back(start_node_);
         
-        while (!open_list_.empty()) {
+        while (rclcpp::ok()) {
             Node_ current_node = select_min_f();
             close_list_.push_back(current_node);
             
