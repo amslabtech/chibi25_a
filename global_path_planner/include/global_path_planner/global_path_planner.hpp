@@ -2,7 +2,7 @@
 #define GLOBAL_PATH_PLANNER_HPP
 
 #include <rclcpp/rclcpp.hpp>
-#include <functcellscellscellsnode?_node_pub_
+#include <functional>
 #include <memory>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
