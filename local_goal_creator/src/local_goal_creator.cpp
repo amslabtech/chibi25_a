@@ -39,7 +39,8 @@ void LocalGoalCreator::process()//main文ので実行する関数
 void LocalGoalCreator::publishGoal()
 {
     int path_size = path_.poses.size();
-    if (path_size == goal_index_) return;
+    if (goal_index_ >= path_size) return;  // 最後のゴールに到達した場合
+
     //ゴールまでの距離の計算を行う
     target_distance_ = getDistance();
     //設定値に応じて，ゴール位置の変更を行う
