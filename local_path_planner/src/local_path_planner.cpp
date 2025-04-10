@@ -107,7 +107,7 @@ DWAPlanner::DWAPlanner() : Node("local_path_planner"), clock_(RCL_ROS_TIME)
     // ####### Subscriber #######
     sub_local_goal_ = this->create_subscription<geometry_msgs::msg::PointStamped>("local_goal", 10,
     [this](const geometry_msgs::msg::PointStamped::SharedPtr msg) {this->local_goal_callback(msg);});
-    sub_obs_poses_ = this->create_subscription<geometry_msgs::msg::PoseArray>("obs_poses", 10,
+    sub_obs_poses_ = this->create_subscription<geometry_msgs::msg::PoseArray>("obstacle_points", 10,
     [this](const geometry_msgs::msg::PoseArray::SharedPtr msg) {this->obs_poses_callback(msg);});
     // ###### Publisher ######
     pub_cmd_speed_ = this->create_publisher<roomba_500driver_meiji::msg::RoombaCtrl>("/roomba/control", rclcpp::QoS(1).reliable()); 
