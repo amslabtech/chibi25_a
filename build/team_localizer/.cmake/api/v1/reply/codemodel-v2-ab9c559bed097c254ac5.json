@@ -1,0 +1,79 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-RelWithDebInfo-415a75e2cd251e7663fb.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"name" : "RelWithDebInfo",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "team_localizer",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "team_localizer_node::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-team_localizer_node-RelWithDebInfo-4c5019a62b143d185f96.json",
+					"name" : "team_localizer_node",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "team_localizer_uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-team_localizer_uninstall-RelWithDebInfo-4dafd1aa96a353e95c73.json",
+					"name" : "team_localizer_uninstall",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-RelWithDebInfo-02de49f532d2d652f604.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/user/ws/src/chibi25_a/build/team_localizer",
+		"source" : "/home/user/ws/src/chibi25_a/localizer"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}

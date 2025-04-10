@@ -1,0 +1,4 @@
+source;share/team_localizer/local_setup.bash
+source;share/team_localizer/local_setup.dsv
+source;share/team_localizer/local_setup.sh
+source;share/team_localizer/local_setup.zsh
