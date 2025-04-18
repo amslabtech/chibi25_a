@@ -15,7 +15,7 @@ Astar::Astar() : Node("team_a_path_planner"), clock_(RCL_ROS_TIME)
 
     // ###### パラメータの取得 ######
     //resolution_ = get_parameter("resolution").as_double();
-    margin_length_ = get_parameter("margin_").as_double();
+    margin_ = get_parameter("margin_").as_double();
     way_points_x_ = get_parameter("way_points_x").as_double_array();
     way_points_y_ = get_parameter("way_points_y").as_double_array();
     test_show_ = get_parameter("test_show").as_bool();
@@ -99,7 +99,7 @@ void Astar::obs_expand(const int index)
     2. 周囲マージン分のセルを障害物として設定 */
     const int x = index % width_;     // Xグリッド座標
     const int y = index / width_;     // Yグリッド座標
-    int margin_cells = static_cast<int>(margin_ / resolution_);  // マージンのセル数
+    int margin_cells = round((margin_ / resolution_));  // マージンのセル数
     
     // 周囲マージン分ループ
     for(int dx=-margin_cells; dx<=margin_cells; ++dx){
@@ -132,8 +132,8 @@ Node_ Astar::set_way_point(int phase)
     1. マップ原点を考慮した座標変換
     2. グリッドインデックス計算 */
     Node_ wp;
-    wp.x = static_cast<int>(std::round((way_points_x_[phase] - origin_x_) / resolution_));
-    wp.y = static_cast<int>(std::round((way_points_y_[phase] - origin_y_) / resolution_));
+    wp.x = std::round((way_points_x_[phase] - origin_x_) / resolution_);
+    wp.y = std::round((way_points_y_[phase] - origin_y_) / resolution_);
     return wp;
 }
 
@@ -740,6 +740,7 @@ void Astar::process()
         RCLCPP_INFO_STREAM(get_logger(), "NOW LOADED MAP");
         obs_expander(); // 壁の拡張
         planning(); // グローバルパスの作成
+        exit(0);
     }
 
 }
