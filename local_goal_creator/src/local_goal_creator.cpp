@@ -8,8 +8,8 @@ LocalGoalCreator::LocalGoalCreator() : Node("LocalGoalCreator")
     local_goal_pub_ = this->create_publisher<geometry_msgs::msg::PointStamped>("/local_goal", rclcpp::QoS(10));
     //初期値の設定
     hz_ = this->declare_parameter<int>("hz", 10);// ループ周期 [Hz]
-    index_step_ = this->declare_parameter<int>("index_step", 1);// １回で更新するインデックス数
-    goal_index_ = this->declare_parameter<int>("goal_index", 1);// グローバルパス内におけるローカルゴールのインデックス
+    index_step_ = this->declare_parameter<int>("index_step", 5);// １回で更新するインデックス数
+    goal_index_ = this->declare_parameter<int>("goal_index", 25);// グローバルパス内におけるローカルゴールのインデックス
     target_distance_ = this->declare_parameter<double>("target_distance", 0.0);// 現在位置-ゴール間の距離 [m]
 }
 
@@ -44,7 +44,7 @@ void LocalGoalCreator::publishGoal()
     //ゴールまでの距離の計算を行う
     target_distance_ = getDistance();
     //設定値に応じて，ゴール位置の変更を行う
-    double goal_distance = 0.5; 
+    double goal_distance = 1.5; 
     if( target_distance_ < goal_distance ){
         goal_index_ += index_step_;
         goal_.header = path_.header;
