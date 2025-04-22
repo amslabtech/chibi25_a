@@ -9,13 +9,13 @@ Astar::Astar() : Node("team_a_path_planner"), clock_(RCL_ROS_TIME)
     // ###### パラメータの宣言 ######
     //declare_parameter<double>("resolution", 0.0);       // マップの解像度（m/グリッド）
     declare_parameter<double>("margin_", 0.3);          // 障害物拡張マージン（グリッド数）
-    declare_parameter<std::vector<double>>("way_points_x", {700.7 ,1026.8 ,1041.7 ,375.1, 360.6, 700.7}); // ウェイポイントX座標リスト
-    declare_parameter<std::vector<double>>("way_points_y", {452.5 ,471.6 ,189.4 ,155.8, 432.9, 452.5}); // ウェイポイントY座標リスト
+    declare_parameter<std::vector<double>>("way_points_x", {-0.16,16.4,17.3,0.917,-16.1,-17.1,-0.16}); // ウェイポイントX座標リスト
+    declare_parameter<std::vector<double>>("way_points_y", {0.11,-0.772,13.4,14.2,15.1,1.01,0.11}); // ウェイポイントY座標リスト
     declare_parameter<bool>("test_show", false);
 
     // ###### パラメータの取得 ######
     //resolution_ = get_parameter("resolution").as_double();
-    margin_length_ = get_parameter("margin_").as_int();
+    margin_ = get_parameter("margin_").as_double();
     way_points_x_ = get_parameter("way_points_x").as_double_array();
     way_points_y_ = get_parameter("way_points_y").as_double_array();
     test_show_ = get_parameter("test_show").as_bool();
@@ -46,6 +46,10 @@ Astar::Astar() : Node("team_a_path_planner"), clock_(RCL_ROS_TIME)
 // process()を実行
 void Astar::map_callback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)  //マップの読み込み
 {
+    if (!msg) {
+        RCLCPP_ERROR(this->get_logger(), "Received null map message");
+        return;
+    }
     /* Rvizから提供されるマップデータの処理:
     1. マップメタデータの取得
     2. グリッドサイズ計算
@@ -59,13 +63,21 @@ void Astar::map_callback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)  //�
     origin_y_ = map_.info.origin.position.y;  // マップ原点Y（m）
     resolution_=map_.info.resolution;// マップの解像度
     map_checker_ = true;            // マップ取得完了フラグ
+
+    RCLCPP_INFO(this->get_logger(), "Map callback executed successfully");
+
+    printf("%d %d %f %f %f \n",width_,height_,origin_x_,origin_y_,resolution_);
     process();                      // メインプロセス起動
 }
 
 
 // マップ全体の障害物を拡張処理（new_map_をpublishする）
 void Astar::obs_expander()
-{
+{   
+    if (new_map_.data.empty()) {
+        RCLCPP_ERROR(this->get_logger(), "New map data is empty, cannot expand obstacles");
+        return;
+    }
     /* 安全マージンを確保するため障害物周囲を拡張:
     1. 元マップの全セルを走査
     2. 障害物（値100）周囲を指定マージン分拡張
@@ -87,7 +99,7 @@ void Astar::obs_expand(const int index)
     2. 周囲マージン分のセルを障害物として設定 */
     const int x = index % width_;     // Xグリッド座標
     const int y = index / width_;     // Yグリッド座標
-    int margin_cells = static_cast<int>(margin_ / resolution_);  // マージンのセル数
+    int margin_cells = round((margin_ / resolution_));  // マージンのセル数
     
     // 周囲マージン分ループ
     for(int dx=-margin_cells; dx<=margin_cells; ++dx){
@@ -120,8 +132,8 @@ Node_ Astar::set_way_point(int phase)
     1. マップ原点を考慮した座標変換
     2. グリッドインデックス計算 */
     Node_ wp;
-    wp.x = static_cast<int>(std::round((way_points_x_[phase] - origin_x_) / resolution_));
-    wp.y = static_cast<int>(std::round((way_points_y_[phase] - origin_y_) / resolution_));
+    wp.x = std::round((way_points_x_[phase] - origin_x_) / resolution_);
+    wp.y = std::round((way_points_y_[phase] - origin_y_) / resolution_);
     return wp;
 }
 
@@ -135,13 +147,17 @@ void Astar::create_path(Node_ node)
     2. 部分パスを構築
     3. 順序反転してグローバルパスに追加 */
     //部分パスを初期化
+
     nav_msgs::msg::Path partial_path;
-    partial_path.poses.push_back(node_to_pose(node));
+   // partial_path.poses.clear();
+    //partial_path.poses.push_back(node_to_pose(node));
     //// 現在のノード（最初はゴールノード）をパスに追加
 
     // ###### パスの作成 ######
     // スタート地点まで遡ってパス構築
-    while(!check_start(node)){
+    /*while(!check_start(node)){
+
+        
         for(const Node_& n : close_list_){
             if(n.x == node.parent_x && n.y == node.parent_y){
                 partial_path.poses.push_back(node_to_pose(n)); // パス点追加
@@ -149,14 +165,95 @@ void Astar::create_path(Node_ node)
                 break;
             }
         }
+
+    }*/
+
+/*
+    for(int i=close_list_.size()-1; i>=0; i--){
+        if(!check_same_node(close_list_[i],start_node_)){
+            if(check_parent(i-1,close_list_[i])){
+                partial_path.poses.push_back(node_to_pose(close_list_[i-1]));
+            }
+        }
+    }
+*/
+
+/*
+    geometry_msgs::msg::PoseStamped pose = node_to_pose(node);
+    partial_path.poses.push_back(pose);
+
+    Node_ current = node;
+    int count = 0;
+    while (!check_start(current) && count < 10000) {
+        bool found = false;
+        for (int i = 0; i < close_list_.size(); ++i) {
+            if (close_list_[i].x == current.parent_x && close_list_[i].y == current.parent_y) {
+                geometry_msgs::msg::PoseStamped pose = node_to_pose(close_list_[i]);
+                partial_path.poses.push_back(pose);
+                current = close_list_[i];
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            RCLCPP_WARN(get_logger(), "Parent not found!");
+            break;
+        }
+        count++;
+    }
+*/
+    partial_path.header.frame_id = "map";
+    std::vector<Node_> path;
+    Node_ current = node;
+std::cout << "Path " << current.x << " " << current.y << std::endl;
+    // 経路復元
+    while (!check_start(current)) {
+        bool found = false;
+        // close_list_を逆順に探索 (重要)
+        for (int i = close_list_.size() - 1; i >= 0; --i) {
+            if (close_list_[i].x == current.parent_x && close_list_[i].y == current.parent_y) {
+                path.push_back(close_list_[i]);
+                current = close_list_[i];
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            RCLCPP_WARN(get_logger(), "Parent not found!");
+            return;
+        }
     }
 
     // パス順序反転（スタート→ゴール）
-    std::reverse(partial_path.poses.begin(), partial_path.poses.end());
+    //std::reverse(partial_path.poses.begin(), partial_path.poses.end());
     // グローバルパスにマージ
+
+
+    std::reverse(path.begin(), path.end()); // 順序を反転
+
+    // PoseStamped 変換
+    for (const auto& n : path) {
+        geometry_msgs::msg::PoseStamped pose = node_to_pose(n);
+        partial_path.poses.push_back(pose);
+    }
+
+    /*
     global_path_.poses.insert(global_path_.poses.end(),
                              partial_path.poses.begin(),
                              partial_path.poses.end());
+    */
+
+    global_path_.poses.push_back(node_to_pose(start_node_)); 
+
+    /*for (const auto& pose : partial_path.poses) {
+        global_path_.poses.push_back(pose);  // グローバルパスに追加
+    }*/
+
+    std::cout << "start point" << start_node_.x << " " << start_node_.y << std::endl;
+    geometry_msgs::msg::PoseStamped start_pose = node_to_pose(start_node_);
+    global_path_.poses.push_back(start_pose);
+
+
 
     // ###### パスの追加 ######
 
@@ -175,20 +272,25 @@ geometry_msgs::msg::PoseStamped Astar::node_to_pose(const Node_ node)
     // (node.x + 0.5) → グリッドセルの中央位置を算出
     // resolution_ → 1セルあたりのメートル単位の大きさ
     // origin_x_ → マップの原点X座標（通常はマップ左下）
-    pose.pose.position.x = origin_x_ + (node.x + 0.5) * resolution_;
+    pose.pose.position.x = origin_x_ + (node.x ) * resolution_;
     // Y座標変換：グリッド位置 → 実世界座標
     // (node.y + 0.5) → グリッドセルの中央位置を算出
     // origin_y_ → マップの原点Y座標
-    pose.pose.position.y = origin_y_ + (node.y + 0.5) * resolution_;
+    pose.pose.position.y = origin_y_ + (node.y ) * resolution_;
     // 座標系の指定（通常はマップ座標系）
     pose.header.frame_id = "map";
+    pose.header.stamp = clock_.now(); // タイムスタンプ追加
     return pose;
 }
 
 
 // openリスト内で最もf値が小さいノードを取得する関数
 Node_ Astar::select_min_f()
-{
+{   
+    if (open_list_.empty()) {
+        RCLCPP_ERROR(this->get_logger(), "Open list is empty, cannot select minimum f-value");
+        throw std::runtime_error("Open list is empty");
+    }
     /* オープンリスト内で最小f値のノードを選択:
     1. std::min_elementで最小要素検索
     2. リストから削除して返却 */
@@ -292,7 +394,7 @@ void Astar::update_list(const Node_ node)
     create_neighbor_nodes(node, neighbor_nodes);
 
     // ###### 隣接ノード ######
-    for(const auto& neighbor : neighbor_nodes){
+    for(const Node_& neighbor : neighbor_nodes){
         // 障害物チェック
         if(check_obs(neighbor)) continue;
 
@@ -465,8 +567,8 @@ void Astar::show_node_point(const Node_ node)
    if (test_show_) {
         geometry_msgs::msg::PointStamped point;
         point.header.frame_id = "map";
-        point.point.x = origin_x_ + (node.x + 0.5) * resolution_;
-        point.point.y = origin_y_ + (node.y + 0.5) * resolution_;
+        point.point.x = origin_x_ + (node.x ) * resolution_;
+        point.point.y = origin_y_ + (node.y ) * resolution_;
         pub_node_point_->publish(point);
     }
 }
@@ -477,8 +579,11 @@ void Astar::show_node_point(const Node_ node)
 void Astar::show_path(nav_msgs::msg::Path& current_path)
 {
     if (test_show_) {
+
         current_path.header.frame_id = "map";
         pub_current_path_->publish(current_path);
+        //global_path_.header.stamp = clock_.now();
+        //pub_current_path_->publish(global_path_); // 全体パスを
     }
 }
 
@@ -495,18 +600,32 @@ void Astar::show_exe_time()
 // 各フェーズ（ウェイポイント間）について，OpenリストとCloseリストを操作しながら経路を探索
 void Astar::planning()
 {
+
+    RCLCPP_INFO(get_logger(), "Checking waypoints...");
+    for (int i = 0; i < way_points_x_.size(); ++i) {
+        Node_ wp = set_way_point(i);
+        RCLCPP_INFO(get_logger(), "Waypoint %d: x = %d, y = %d", i, wp.x, wp.y);
+    }
+
+
+
+    global_path_.poses.clear(); // 全体パスを初期化
+    RCLCPP_INFO(get_logger(), "Starting global path planning...");
     begin_ = clock_.now();
     const int total_phase = way_points_x_.size();
+    
 
     // ###### ウェイポイント間の経路探索 ######
-    for (int phase = 0; phase < total_phase - 1; ++phase) {
+    for (int phase = 0; phase < total_phase; phase++) {
+        //global_path_.poses.clear();
         start_node_ = set_way_point(phase);
         goal_node_ = set_way_point(phase + 1);
         
-        start_node_.f = make_heuristic(start_node_);
+        //start_node_.f = make_heuristic(start_node_);
 
         open_list_.clear();
         close_list_.clear();
+        start_node_.f = make_heuristic(start_node_);
         open_list_.push_back(start_node_);
         
         while (rclcpp::ok()) {
@@ -515,29 +634,95 @@ void Astar::planning()
             
             if (check_goal(current_node)) {
                 create_path(current_node);
+                if (test_show_) {
+                    //show_path(global_path_);
+                }
                 break;
             }
     
             update_list(current_node);
 
-            if (test_show_) 
+            /*if (test_show_) {
+                nav_msgs::msg::Path current_path;
+                Node_ temp_node = current_node;
+                current_path.poses.push_back(node_to_pose(temp_node));
+                int max_iter = width_ * height_;
+                while (!check_start(temp_node) && max_iter-- > 0) {
+                    bool found = false;
+                    for (int i = close_list_.size() - 1; i >= 0; i--) {
+                        if (close_list_[i].x == temp_node.parent_x && close_list_[i].y == temp_node.parent_y) {
+                            current_path.poses.push_back(node_to_pose(close_list_[i]));
+                            temp_node = close_list_[i];
+                            found = true;
+                            break;
+                            }
+                    }
+                    if (!found) break;
+                }
+                std::reverse(current_path.poses.begin(), current_path.poses.end());
+                show_path(current_path);
+                rclcpp::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep_time_ * 1000)));
+            }*/
+
+            /*if (test_show_) 
             {  // デバッグ表示モードの場合
                 show_node_point(current_node);  // 現在のノードを表示
                 nav_msgs::msg::Path current_path;
-                create_path(current_node);  // 現在のパスを生成
+                //create_path(current_node);  // 現在のパスを生成
                 show_path(current_path);  // 現在のパスを表示
                 rclcpp::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep_time_ * 1000)));  // 表示のための一時停止
-            }
+            }*/
         }
+        //pub_path_ ->publish(global_path_);
     }
+
+
+
+/*
+    // 最後のパスを表示するために、ここに追加
+        start_node_ = set_way_point(total_phase-2);
+        goal_node_ = set_way_point(total_phase-1);
+
+        open_list_.clear();
+        close_list_.clear();
+        start_node_.f = make_heuristic(start_node_);
+        open_list_.push_back(start_node_);
+
+        while (rclcpp::ok()) {
+            Node_ current_node = select_min_f();
+            close_list_.push_back(current_node);
+
+            if (check_goal(current_node)) {
+                create_path(current_node);
+                break;
+            }
+
+            update_list(current_node);
+        }
+        for(int i = 0; i < global_path_.poses.size(); i++){
+         global_path_.poses[i].header.stamp = clock_.now();
+         }
+*/
+
+
+         // パスのタイムスタンプを更新
+        for(auto & pose : global_path_.poses) {
+            pose.header.stamp = clock_.now();
+        }
+
+
+        if (test_show_) {
+            show_path(global_path_);
+        }
+
+
+
+
 
     pub_path_ ->publish(global_path_);
 
-
     show_exe_time();
     RCLCPP_INFO_STREAM(get_logger(), "COMPLITE ASTAR PROGLAM");
-    exit(0);
-    rclcpp::shutdown();
 }
 
 
@@ -555,7 +740,7 @@ void Astar::process()
         RCLCPP_INFO_STREAM(get_logger(), "NOW LOADED MAP");
         obs_expander(); // 壁の拡張
         planning(); // グローバルパスの作成
+        exit(0);
     }
 
 }
-
