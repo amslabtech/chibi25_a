@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>teama_localizer</name>
+  <name>team_a_localizer</name>
   <version>0.0.0</version>
-  <description>the teama_localizer package</description>
+  <description>the team_a_localizer package</description>
   <maintainer email="amsl@todo.todo">amsl</maintainer>
   <license>TODO</license>
 

@@ -28,18 +28,18 @@ OdomModel& OdomModel::operator =(const OdomModel& model)
 // 並進，回転に関する標準偏差の設定
 void OdomModel::set_dev(const double length, const double angle)
 {
-    fw_dev_ = sqrt(abs(length)*fw_var_per_fw_ + abs(angle)*fw_var_per_rot_);
-    rot_dev_ = sqrt(abs(length)*rot_var_per_fw_ + abs(angle)*rot_var_per_rot_);
+    fw_dev_ = sqrt(length*length*fw_var_per_fw_ + angle*angle*fw_var_per_rot_);
+    rot_dev_ = sqrt(length*length*rot_var_per_fw_ + angle*angle*rot_var_per_rot_);
 }
 
 // 直進に関するノイズ（fw_dev_）の取得
 double OdomModel::get_fw_noise()
 {
-    return std_norm_dist_(engine_)*fw_dev_;
+    return fw_dev_ * std_norm_dist_(engine_);
 }
 
 // 回転に関するノイズ（rot_dev_）の取得
 double OdomModel::get_rot_noise()
 {
-    return std_norm_dist_(engine_)*rot_dev_;
+    return rot_dev_ * std_norm_dist_(engine_);
 }
