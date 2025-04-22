@@ -46,9 +46,9 @@ void Pose::set(const double x, const double y, const double yaw)
 // ノイズを加えて，移動させる
 void Pose::move(double length, double direction, double rotation, const double fw_noise, const double rot_noise)
 {
-    length += fw_noise*length;
-    // direction += rot_noise;
-    rotation += rot_noise*rotation;
+    length += fw_noise;
+    direction += rot_noise;
+    rotation += rot_noise;
 
     x_ += length * cos(direction + yaw_);
     y_ += length * sin(direction + yaw_);
