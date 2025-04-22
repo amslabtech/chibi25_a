@@ -31,6 +31,7 @@ Localizer::Localizer() : Node("team_localizer")
     this->declare_parameter("fr", 0.0005);
     this->declare_parameter("rf", 0.13);
     this->declare_parameter("rr", 0.2);
+    this->declare_parameter("ignore_angle_range_list", std::vector<double>({M_PI*0.22, M_PI*0.25, M_PI*0.72, M_PI*0.76}));
 
     // パラメータの取得
     this->get_parameter("hz", hz_);
@@ -55,6 +56,7 @@ Localizer::Localizer() : Node("team_localizer")
     this->get_parameter("fr", fr_);
     this->get_parameter("rf", rf_);
     this->get_parameter("rr", rr_);
+    this->get_parameter("ignore_angle_range_list", ignore_angle_range_list_);   
 
     // Subscriberの設定
     sub_map_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
@@ -89,6 +91,7 @@ void Localizer::map_callback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
 {
     map_ = *msg;
     flag_map_ = true;
+    printf("map call ok\n");
 }
 
 // odometryのコールバック関数
@@ -97,6 +100,7 @@ void Localizer::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
     prev_odom_ = last_odom_;
     last_odom_ = *msg;
     flag_odom_ = true;
+    // printf("%f -> %f\n", prev_odom_.pose.pose.position.x, last_odom_.pose.pose.position.x);
 }
 
 // laserのコールバック関数
@@ -104,6 +108,7 @@ void Localizer::laser_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 {
     laser_ = *msg;
     flag_laser_ = true;
+    // printf("laser call ok\n");
 }
 
 // hz_を返す関数
@@ -132,6 +137,8 @@ void Localizer::initialize()
 
     // パーティクルの重みの初期化
     reset_weight();
+
+    printf("particle weight %f\n", particles_[0].weight());
 }
 
 // main文のループ内で実行される関数
@@ -159,7 +166,7 @@ double Localizer::normalize_angle(double angle)
 // ランダム変数生成関数（正規分布）
 double Localizer::norm_rv(const double mean, const double stddev)
 {
-    std::normal_distribution<> norm_dist(mean, stddev);
+    std::normal_distribution<double> norm_dist(mean, stddev);
     return norm_dist(engine_);
 }
 
@@ -167,7 +174,7 @@ double Localizer::norm_rv(const double mean, const double stddev)
 void Localizer::reset_weight()
 {
     for(auto& p : particles_){
-        p.set_weight(1/particles_.size());
+        p.set_weight(1.0/particles_.size());
     }
 }
 
@@ -175,6 +182,7 @@ void Localizer::reset_weight()
 // map座標系からみたbase_link座標系の位置と姿勢，odom座標系からみたbase_link座標系の位置と姿勢から計算
 void Localizer::broadcast_odom_state()
 {
+    flag_broadcast_ = true;
     if(flag_broadcast_)
     {
         // TF Broadcasterの実体化
@@ -220,6 +228,8 @@ void Localizer::broadcast_odom_state()
 
         // tf情報をbroadcast(座標系の設定)
         odom_state_broadcaster->sendTransform(odom_state);
+
+        // printf("broadcast ok\n");
     }
 
 }
@@ -245,15 +255,17 @@ void Localizer::motion_update()
 
     // 方向、移動量の計算
     const double length = hypot(dx, dy);
-    const double direction = normalize_angle(atan2(dy, dx));
+    const double direction = normalize_angle(atan2(dy, dx) - prev_yaw);
+    // printf("%f, %f\n", length, direction);
 
     // 標準偏差の設定
-    odom_model_.set_dev(length, direction);
+    odom_model_.set_dev(length, dyaw);
 
     // パーティクルの位置更新
     for(auto& p : particles_){
         p.pose_.move(length, direction, dyaw, odom_model_.get_fw_noise(), odom_model_.get_rot_noise());
     }
+    // printf("mu ok\n");
 }
 
 // 観測更新
@@ -265,19 +277,31 @@ void Localizer::observation_update()
         p.set_weight(p.weight() * p.likelihood(map_, laser_, sensor_noise_ratio_, laser_step_, ignore_angle_range_list_));
     }
     // パーティクル1つのレーザ1本における平均尤度を算出
-    const double alpha = calc_marginal_likelihood()/laser_.ranges.size()/particles_.size();
+    const double alpha = calc_marginal_likelihood()/((laser_.ranges.size()/laser_step_) * particles_.size());
+    // printf("alpha %f\n", alpha);
 
-    estimate_pose();
-    resampling(alpha_th_);
+    normalize_belief();
+    if(alpha < alpha_th_ && reset_counter < reset_count_limit_){
+        estimate_pose();
+        expansion_resetting();
+        reset_counter++;
+    }
+    else{
+        estimate_pose();
+        resampling(alpha);
+        reset_counter = 0;
+    }
+    // printf("ou ok\n");
 }
 
 // 周辺尤度の算出
 double Localizer::calc_marginal_likelihood()
 {
     double sum = 0.0;
-    for(auto& p : particles_){
+    for(const auto& p : particles_){
         sum += p.weight();
     }
+    // printf("sum %f\n", sum);
     return sum;
 }
 
@@ -285,15 +309,24 @@ double Localizer::calc_marginal_likelihood()
 // 算出方法は複数ある（平均，加重平均，中央値など...）
 void Localizer::estimate_pose()
 {
-    double estimate_x;
-    double estimate_y;
-    double estimate_yaw;
-    for(auto& p : particles_){
+    double estimate_x = 0.0;
+    double estimate_y = 0.0;
+    double estimate_yaw = 0.0;
+    double max_weight = 0.0;
+    // printf("weight %f\n", max_weight);
+    for(const auto& p : particles_){
         estimate_x += p.pose_.x() * p.weight();
         estimate_y += p.pose_.y() * p.weight();
+        // printf("p %f\n", p.weight());
+        // if(max_weight < p.weight()){
+        //     estimate_yaw = p.pose_.yaw();
+        //     max_weight = p.weight();
+        //     // printf("max %f\n", max_weight);
+        // }
         estimate_yaw += p.pose_.yaw() * p.weight();
     }
     estimated_pose_.set(estimate_x, estimate_y, estimate_yaw);
+    // printf("yaw %f\n", estimate_yaw);
 }
 
 // 重みの正規化
@@ -308,43 +341,74 @@ void Localizer::normalize_belief()
 // 膨張リセット（EMCLの場合）
 void Localizer::expansion_resetting()
 {
-
+    for(auto& p : particles_){
+        const double x = norm_rv(p.pose_.x(), expansion_x_dev_);
+        const double y = norm_rv(p.pose_.y(), expansion_y_dev_);
+        const double yaw = norm_rv(p.pose_.yaw(), expansion_yaw_dev_);
+        p.pose_.set(x, y, yaw);
+        p.pose_.normalize_angle();
+    }
+    reset_weight();
 }
 
 // リサンプリング（系統サンプリング）
 // 周辺尤度に応じてパーティクルをリサンプリング
 void Localizer::resampling(const double alpha)
 {
+    // printf("resampling start\n");
     // パーティクルの重みを積み上げたリストを作成
     std::vector<double> accum;
-    for(int i=0; i<particles_.size(); i++){
-        accum.push_back(accum.back() + particles_[i].weight());
+    double sum_weight = 0.0;
+    for(auto& p : particles_){
+        sum_weight += p.weight();
+        accum.push_back(sum_weight);
     }
+    // printf("accum ok\n");
 
     // サンプリングのスタート位置とステップを設定
     const std::vector<Particle> old(particles_);
     int size = particles_.size();
-    double step = accum.back() / size;
-    double start = rand()/RAND_MAX *step;
+    double step = sum_weight / size;
+    double start = (double)rand()/RAND_MAX * step;
+    // printf("set ok\n");
 
     // particle数の動的変更
+    // if(alpha>0.8 && particle_num_>max_particle_num_){
+    //     particle_num_ -= particle_num_/6;
+    //     size = particle_num_;
+    //     // printf("p_num -\n");
+    // }else if(alpha<0.3 && particle_num_>min_particle_num_){
+    //     particle_num_ += particle_num_/3;
+    //     size = particle_num_;
+    //     // printf("p_num +\n");
+    // }
 
     // サンプリングするパーティクルのインデックスを保持
     std::vector<int> index;
-    int num;
-    for(int i=0; i>particles_.size(); i++)
+    // index.reserve(particle_num_);
+    int num = 0;
+    int prev_num = 0;
+    for(int i=0; i<size; i++)
     {
-        while(accum[num] < start + step*i) num += 1;
+        while(accum[num] <= start + i*step){
+            num += 1;
+            if(num == size){
+                exit(1);
+            }
+        }
         index.push_back(num);
     }
 
     // リサンプリング
+    particles_.clear();
     for(int i=0; i<size; i++){
-        particles_[i] = old[index[i]];
+        particles_.push_back(old[index[i]]);
     }
 
     // 重みを初期化
+    // normalize_belief();
     reset_weight();
+    // printf("resample ok\n");
 }
 
 // 推定位置のパブリッシュ
@@ -358,12 +422,14 @@ void Localizer::publish_estimated_pose()
     tf2::convert(q, estimated_pose_msg_.pose.orientation);
 
     pub_estimated_pose_ -> publish(estimated_pose_msg_);
+    // printf("ep pub ok\n");
 }
 
 // パーティクルクラウドのパブリッシュ
 // パーティクル数が変わる場合，リサイズする
 void Localizer::publish_particles()
 {
+    is_visible_ = true;
     if(is_visible_)
     {
         particle_cloud_msg_.poses.clear();
@@ -380,6 +446,7 @@ void Localizer::publish_particles()
 
             particle_cloud_msg_.poses.push_back(pose);
         }
-        pub_particle_cloud_ -> publish(particle_cloud_msg_);        
+        pub_particle_cloud_ -> publish(particle_cloud_msg_);   
+        // printf("par pub ok\n");     
     }
 }
