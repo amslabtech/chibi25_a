@@ -31,7 +31,7 @@ node_name1:
     # 以下が無視される
     # [0] < angle < [1], [2] < angle
     # [num] -> num:index
-    ignore_angle_range_list: [######, ######, ######]
+    ignore_angle_range_list: [#####, #####, #####]
     
     # フラグ
     flag_init_noise: true # 初期位置にノイズを加えるか
