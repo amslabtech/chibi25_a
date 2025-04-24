@@ -1,7 +1,7 @@
 # local_path_plannerから引用
 cmake_minimum_required(VERSION 3.5)
-# team_obstacle_detectorである必要はあるのか？
-project(team_obstacle_detector)
+# team_a_obstacle_detectorである必要はあるのか？
+project(team_a_obstacle_detector)
 
 # find dependencies
 find_package(ament_cmake_auto REQUIRED)

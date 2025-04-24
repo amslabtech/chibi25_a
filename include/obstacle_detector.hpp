@@ -8,7 +8,7 @@
 #include <memory>  // SharedPtr用
 #include <optional>  // has_value用
 #include "sensor_msgs/msg/laser_scan.hpp"
-#include "geometry_msgs/msg/point_stamped.hpp"
+#include "geometry_msgs/msg/pose_array.hpp"
 
 class ObstacleDetector : public rclcpp::Node
 {
@@ -22,6 +22,7 @@ class ObstacleDetector : public rclcpp::Node
       // 関数
       void scan_obstacle();
       bool is_ignore_scan(float distance, float angle);
+      float normalize_angle(float angle);
   
   private:
       // 変数
@@ -33,7 +34,7 @@ class ObstacleDetector : public rclcpp::Node
 
       // Pub & Sub
       rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_sub_;
-      rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr obstacle_points_pub_;
+      rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr obstacle_array_pub_;
 };
 
 #endif  // b_obstacle_detector_hpp
