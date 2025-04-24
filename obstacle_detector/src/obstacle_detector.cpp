@@ -1,8 +1,23 @@
-#include "obstacle_detector/obstacle_detector.hpp"
+#include "obstacle_detector.hpp"
 
-ObstacleDetector::ObstacleDetector()
-: Node("obstacle_detector")
+using namespace std::chrono_literals;
+
+ObstacleDetector::ObstacleDetector() : Node("ObstacleDetector")
 {
+    // YAMLファイルからパラメータを取得
+    this->declare_parameter("hz", 10);  // デフォルト値10Hz
+    this->declare_parameter("laser_step", 1);  // デフォルト値 1
+    this->declare_parameter("robot_frame", std::string("base_link"));
+    this->declare_parameter("ignore_dist", 0.5);  // デフォルト値 0.5m
+
+    this->get_parameter("hz", hz_);
+    this->get_parameter("laser_step", laser_step_);
+    this->get_parameter("robot_frame", robot_frame_);
+    this->get_parameter("ignore_dist", ignore_dist_);
+
+    RCLCPP_INFO(this->get_logger(), "Loaded Parameters: hz=%d, laser_step=%d, robot_frame=%s, ignore_dist=%.2f",
+                hz_, laser_step_, robot_frame_.c_str(), ignore_dist_);
+
     // global変数を定義(yamlファイルからパラメータを読み込めるようにすると，パラメータ調整が楽)
     // LiDARデータのサブスクライバ
     lidar_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
@@ -12,7 +27,7 @@ ObstacleDetector::ObstacleDetector()
     obstacle_points_pub_ = this->create_publisher<geometry_msgs::msg::PointStamped>("obstacle_points", 10);
 }
 
-//Lidarから障害物の情報を取得
+//LiDARから障害物の情報を取得
 void ObstacleDetector::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 {
     // msgを取得
@@ -26,7 +41,7 @@ void ObstacleDetector::process()
     scan_obstacle();  
 }
 
-//Lidarから障害物情報を取得し，障害物の座標をpublish　※メッセージの型は自分で決めてください
+//LiDARから障害物情報を取得し，障害物の座標をpublish
 void ObstacleDetector::scan_obstacle()
 {
     if (!laserscan_.has_value()) return;
@@ -34,14 +49,15 @@ void ObstacleDetector::scan_obstacle()
    
     geometry_msgs::msg::PointStamped obstacle_point;
     obstacle_point.header.stamp = this->get_clock()->now();
-    obstacle_point.header.frame_id = "base_link";
+    obstacle_point.header.frame_id = robot_frame_;
    
     // 簡単な障害物検出 (最短距離の点を取得)
-    float min_distance = scan->range_max;
+    float min_distance = scan.range_max;
+    RCLCPP_INFO(this->get_logger(), "min_distance = %f", min_distance);
     float min_angle = 0.0;
-    for (size_t i = 0; i < scan->ranges.size(); ++i) {
-        float distance = scan->ranges[i];
-        float angle = scan->angle_min + i * scan->angle_increment;
+    for (size_t i = 0; i < scan.ranges.size(); i += laser_step_) {
+        float distance = scan.ranges[i];
+        float angle = scan.angle_min + i * scan.angle_increment;
        
         // 無視する範囲を判定
         if (is_ignore_scan(distance, angle)) continue;
@@ -62,18 +78,18 @@ void ObstacleDetector::scan_obstacle()
 }
 
 
-//無視するlidar情報の範囲の決定(lidarがroombaの櫓の中にあり，櫓の４つの柱を障害物として検出してしまうため削除が必要)
+//無視するLiDAR情報の範囲の決定(LiDARがroombaの櫓の中にあり，櫓の４つの柱を障害物として検出してしまうため削除が必要)
 bool ObstacleDetector::is_ignore_scan(float distance, float angle)
 {
-    // 無視する柱の位置（Lidar中心から半径10cm付近）
-    const float IGNORE_RADIUS = 0.1; // 10cm
+    // 無視する柱の位置（LiDAR中心から半径10cm付近）
+    // const float IGNORE_RADIUS = 0.1; // 10cm
     const float TOLERANCE = 0.02; // 許容誤差 2cm
 
     // 4本の支柱の角度（LiDARの正面から45, 135, -45, -135度に設置）
     float pillar_angles[] = {M_PI_4, 3*M_PI_4, -M_PI_4, -3*M_PI_4};
 
     for (float pillar_angle : pillar_angles) {
-        if (std::abs(distance - IGNORE_RADIUS) < TOLERANCE && std::abs(angle - pillar_angle) < M_PI / 18) {
+        if (std::abs(distance - ignore_dist_) < TOLERANCE && std::abs(angle - pillar_angle) < M_PI / 18) {
             return true; // 無視する
         }
     }
