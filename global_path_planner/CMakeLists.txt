@@ -12,7 +12,7 @@ ament_auto_add_executable(${PROJECT_NAME}_node
 # launchファイルをインストール（ament_package_indexが探せる場所に置く）
 install(DIRECTORY
   launch
-  map
+  ${CMAKE_SOURCE_DIR}/ros2_ws/src/chibi25_a/map
   DESTINATION share/${PROJECT_NAME}/
 )
 # ヘッダーのインストールや共有ライブラリのエクスポート等を自動で行ってくれる
