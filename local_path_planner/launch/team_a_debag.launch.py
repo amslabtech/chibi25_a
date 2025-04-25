@@ -14,12 +14,7 @@ def generate_launch_description():
             parameters=[{'use_sim_time': True}],
             #parameters=[{'use_sim_time': False}],
         ),
-        Node(
-            package='team_a_local_map_creator',
-            executable='team_a_local_map_creator_node',
-            parameters=[{'use_sim_time': True}],
-            #parameters=[{'use_sim_time': False}],
-        ),
+        
         Node(
             package='team_a_localizer',
             executable='team_a_localizer_node',
@@ -52,7 +47,7 @@ def generate_launch_description():
         Node(
             package='rviz2',
             executable='rviz2',
-            arguments=['-d','./src/chibi25_a/local_path_planner/config/rviz_debag.rviz'],
+            arguments=['-d','./src/chibi25_a/local_path_planner/launch/Rviz_config.rviz'],
         ),
         ExecuteProcess(
             cmd=['ros2', 'bag', 'play', '/home/user/ws/src/chibi25_a/local_path_planner/bagfiles/map_bag','--clock'],
