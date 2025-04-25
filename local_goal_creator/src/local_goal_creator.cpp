@@ -59,4 +59,8 @@ double LocalGoalCreator::getDistance()//距離計算関数（使わなくても�
     double dx = goal_.point.x - pose_.pose.position.x;
     double dy = goal_.point.y - pose_.pose.position.y;
     return std::sqrt(dx * dx + dy * dy);
+<<<<<<< Updated upstream
 }
+=======
+}
+>>>>>>> Stashed changes
