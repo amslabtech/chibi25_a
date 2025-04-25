@@ -420,7 +420,7 @@ double DWAPlanner::calc_evaluation(const std::vector<State>& traj)
 
     const double total_score = heading_score + distance_score + velocity_score;
 
-    RCLCPP_INFO(this->get_logger(), "Trajectory v=%f, yawrate=%f: heading=%.2f, velocity=%.2f, obstacle=%.2f, total_score=%.2f",traj[0], traj[1], heading_score, velocity_score, distance_score, total_score);
+    //RCLCPP_INFO(this->get_logger(), "Trajectory v=%f, yawrate=%f: heading=%.2f, velocity=%.2f, obstacle=%.2f, total_score=%.2f",traj[0], traj[1], heading_score, velocity_score, distance_score, total_score);
 
     return total_score;
 }
@@ -431,8 +431,8 @@ double DWAPlanner::calc_heading_eval(const std::vector<State>& traj)
 {
     if (traj.empty()) return 0.0;
 
-    double dx = local_goal_.point.x - traj.back().x;
-    double dy = local_goal_.point.y - traj.back().y;
+    double dx = local_goal_.point.x + roomba_.x - traj.back().x;
+    double dy = local_goal_.point.y + roomba_.y - traj.back().y;
 
     double goal_theta = std::atan2(dy, dx);
     double traj_theta = traj.back().yaw;
