@@ -123,6 +123,7 @@ void DWAPlanner::local_goal_callback(const geometry_msgs::msg::PointStamped::Sha
     geometry_msgs::msg::TransformStamped transform;
     try
     {
+<<<<<<< HEAD
         if (!tf_buffer_->canTransform(
                 "base_link",
                 msg->header.frame_id,
@@ -176,6 +177,7 @@ void DWAPlanner::process()
     double velocity = 0.0;
     double yawrate = 0.0;
 
+<<<<<<< HEAD
     // ==== 現在のロボットの推定位置をTFから取得 ====
     geometry_msgs::msg::TransformStamped tf;
     try {
@@ -334,8 +336,8 @@ void DWAPlanner::change_mode()
 // Dynamic Windowを計算
 void DWAPlanner::calc_dynamic_window()
 {
-    //RCLCPP_INFO(this->get_logger(), "[calculate_dynamic_window] Calculated window: v_min=%.2f, v_max=%.2f, w_min=%.2f, w_max=%.2f", dw_.min_vel, dw_.max_vel, dw_.min_yawrate, dw_.max_yawrate);
 
+    //RCLCPP_INFO(this->get_logger(), "[calculate_dynamic_window] Calculated window: v_min=%.2f, v_max=%.2f, w_min=%.2f, w_max=%.2f", dw_.min_vel, dw_.max_vel, dw_.min_yawrate, dw_.max_yawrate);
     // ###### 車両モデルによるWindow ######
     double Vs[] = { min_vel_, max_vel_, -max_yawrate_, max_yawrate_ };
 
@@ -488,7 +490,6 @@ double DWAPlanner::calc_dist_eval(const std::vector<State>& traj)
     return min_dist;
 }
 
-
 // velocityの評価関数を計算
 // 軌跡の速度評価を計算する関数
 double DWAPlanner::calc_vel_eval(const std::vector<State>& traj)
@@ -502,7 +503,6 @@ double DWAPlanner::calc_vel_eval(const std::vector<State>& traj)
 // 軌跡を可視化するための関数
 void DWAPlanner::visualize_traj(const std::vector<State>& traj, rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub_predict_path, rclcpp::Time now)
 {
-
     nav_msgs::msg::Path path;
     path.header.stamp = now;
     path.header.frame_id = "map"; // 座標系

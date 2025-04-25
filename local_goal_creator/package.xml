@@ -1,8 +1,14 @@
 <?xml version="1.0"?>
 <package format="3">
+<<<<<<< HEAD
   <name>team_a_local_goal_creator</name>
   <version>0.0.0</version>
   <description>The team_a_local_goal_creator package</description>
+=======
+  <name>team_local_goal_creator</name>
+  <version>0.0.0</version>
+  <description>The team_local_goal_creator package</description>
+>>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->

@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.8)
+<<<<<<< HEAD
 project(team_a_local_map_creator)
+=======
+project(local_map_creator)
+>>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
 
 # find dependencies
 find_package(ament_cmake_auto REQUIRED)
