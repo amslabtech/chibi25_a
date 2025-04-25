@@ -7,30 +7,6 @@ using namespace std::chrono_literals;
 Astar::Astar() : Node("team_a_path_planner"), clock_(RCL_ROS_TIME)
 {
     // ###### パラメータの宣言 ######
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
-    //declare_parameter<double>("resolution", 0.0);       // マップの解像度（m/グリッド）
-    declare_parameter<double>("margin_", 0.3);          // 障害物拡張マージン（グリッド数）
-    declare_parameter<std::vector<double>>("way_points_x", {700.7 ,1026.8 ,1041.7 ,375.1, 360.6, 700.7}); // ウェイポイントX座標リスト
-    declare_parameter<std::vector<double>>("way_points_y", {452.5 ,471.6 ,189.4 ,155.8, 432.9, 452.5}); // ウェイポイントY座標リスト
-    declare_parameter<bool>("test_show", false);
-
-    // ###### パラメータの取得 ######
-    //resolution_ = get_parameter("resolution").as_double();
-    margin_length_ = get_parameter("margin_").as_int();
-    way_points_x_ = get_parameter("way_points_x").as_double_array();
-    way_points_y_ = get_parameter("way_points_y").as_double_array();
-    test_show_ = get_parameter("test_show").as_bool();
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-
-
-    // ###### パラメータの取得 ######
-
-=======
     //declare_parameter<double>("resolution", 0.0);       // マップの解像度（m/グリッド）
     declare_parameter<double>("margin_", 0.3);          // 障害物拡張マージン（グリッド数）
     declare_parameter<std::vector<double>>("way_points_x", {-0.16,16.4,17.3,0.917,-16.1,-17.1,-0.16}); // ウェイポイントX座標リスト
@@ -43,10 +19,6 @@ Astar::Astar() : Node("team_a_path_planner"), clock_(RCL_ROS_TIME)
     way_points_x_ = get_parameter("way_points_x").as_double_array();
     way_points_y_ = get_parameter("way_points_y").as_double_array();
     test_show_ = get_parameter("test_show").as_bool();
->>>>>>> Stashed changes
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
 
     // ###### global_path_とcurrent_node_のframe_id設定 ######
     global_path_.header.frame_id = "map";      // グローバルパスのフレーム
@@ -74,18 +46,10 @@ Astar::Astar() : Node("team_a_path_planner"), clock_(RCL_ROS_TIME)
 // process()を実行
 void Astar::map_callback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)  //マップの読み込み
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
     if (!msg) {
         RCLCPP_ERROR(this->get_logger(), "Received null map message");
         return;
     }
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
     /* Rvizから提供されるマップデータの処理:
     1. マップメタデータの取得
     2. グリッドサイズ計算
@@ -99,43 +63,21 @@ void Astar::map_callback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)  //�
     origin_y_ = map_.info.origin.position.y;  // マップ原点Y（m）
     resolution_=map_.info.resolution;// マップの解像度
     map_checker_ = true;            // マップ取得完了フラグ
-<<<<<<< HEAD
-<<<<<<< HEAD
-    process();                      // メインプロセス起動
-=======
 
     RCLCPP_INFO(this->get_logger(), "Map callback executed successfully");
 
     printf("%d %d %f %f %f \n",width_,height_,origin_x_,origin_y_,resolution_);
     process();                      // メインプロセス起動
 }
->>>>>>> Stashed changes
-
->>>>>>> abe
-}
-=======
-    process();                      // メインプロセス起動
-}
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
 
 
 // マップ全体の障害物を拡張処理（new_map_をpublishする）
 void Astar::obs_expander()
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-{
-<<<<<<< HEAD
-=======
-=======
 {   
     if (new_map_.data.empty()) {
         RCLCPP_ERROR(this->get_logger(), "New map data is empty, cannot expand obstacles");
         return;
     }
->>>>>>> abe
-=======
-{
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
     /* 安全マージンを確保するため障害物周囲を拡張:
     1. 元マップの全セルを走査
     2. 障害物（値100）周囲を指定マージン分拡張
@@ -146,43 +88,18 @@ void Astar::obs_expander()
         }
     }
     pub_new_map_->publish(new_map_);  // 拡張マップを公開
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-}
->>>>>>> Stashed changes
-
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
 }
 
 
 // 指定されたインデックスの障害物を拡張（margin_cells分）
 void Astar::obs_expand(const int index)
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
     /* 指定インデックスの障害物を周囲に拡張:
     1. グリッド座標変換（index → x,y）
     2. 周囲マージン分のセルを障害物として設定 */
     const int x = index % width_;     // Xグリッド座標
     const int y = index / width_;     // Yグリッド座標
-<<<<<<< HEAD
-<<<<<<< HEAD
-    int margin_cells = static_cast<int>(margin_ / resolution_);  // マージンのセル数
-=======
     int margin_cells = round((margin_ / resolution_));  // マージンのセル数
->>>>>>> abe
-=======
-    int margin_cells = static_cast<int>(margin_ / resolution_);  // マージンのセル数
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
     
     // 周囲マージン分ループ
     for(int dx=-margin_cells; dx<=margin_cells; ++dx){
@@ -196,15 +113,6 @@ void Astar::obs_expand(const int index)
             }
         }
     }
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-}
->>>>>>> Stashed changes
-
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
 }
 
 
@@ -220,36 +128,13 @@ double Astar::make_heuristic(const Node_ node)
 // スタートとゴールの取得（mからグリッド単位への変換も行う）
 Node_ Astar::set_way_point(int phase)
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
     /* Rviz座標（m）からグリッド座標へ変換:
     1. マップ原点を考慮した座標変換
     2. グリッドインデックス計算 */
     Node_ wp;
-<<<<<<< HEAD
-<<<<<<< HEAD
-    wp.x = static_cast<int>(std::round((way_points_x_[phase] - origin_x_) / resolution_));
-    wp.y = static_cast<int>(std::round((way_points_y_[phase] - origin_y_) / resolution_));
-    return wp;
-=======
     wp.x = std::round((way_points_x_[phase] - origin_x_) / resolution_);
     wp.y = std::round((way_points_y_[phase] - origin_y_) / resolution_);
     return wp;
-}
->>>>>>> Stashed changes
-
->>>>>>> abe
-=======
-    wp.x = static_cast<int>(std::round((way_points_x_[phase] - origin_x_) / resolution_));
-    wp.y = static_cast<int>(std::round((way_points_y_[phase] - origin_y_) / resolution_));
-    return wp;
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
 }
 
 
@@ -257,50 +142,6 @@ Node_ Astar::set_way_point(int phase)
 // 参考：push_back(...) https://cpprefjp.github.io/reference/vector/vector/push_back.html
 void Astar::create_path(Node_ node)
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
-    /* パス生成フロー：
-    1. ゴールノードから逆方向に親ノードを追跡
-    2. 部分パスを構築
-    3. 順序反転してグローバルパスに追加 */
-    //部分パスを初期化
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
-    nav_msgs::msg::Path partial_path;
-    partial_path.poses.push_back(node_to_pose(node));
-    //// 現在のノード（最初はゴールノード）をパスに追加
-
-    // ###### パスの作成 ######
-    // スタート地点まで遡ってパス構築
-    while(!check_start(node)){
-        for(const Node_& n : close_list_){
-            if(n.x == node.parent_x && n.y == node.parent_y){
-                partial_path.poses.push_back(node_to_pose(n)); // パス点追加
-                node = n;  // 親ノードに移動
-                break;
-            }
-        }
-    }
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
-    // パス順序反転（スタート→ゴール）
-    std::reverse(partial_path.poses.begin(), partial_path.poses.end());
-    // グローバルパスにマージ
-    global_path_.poses.insert(global_path_.poses.end(),
-                             partial_path.poses.begin(),
-                             partial_path.poses.end());
-<<<<<<< HEAD
-=======
-=======
     /* パス生成フロー：
     1. ゴールノードから逆方向に親ノードを追跡
     2. 部分パスを構築
@@ -413,10 +254,6 @@ std::cout << "Path " << current.x << " " << current.y << std::endl;
     global_path_.poses.push_back(start_pose);
 
 
->>>>>>> Stashed changes
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
 
     // ###### パスの追加 ######
 
@@ -426,15 +263,6 @@ std::cout << "Path " << current.x << " " << current.y << std::endl;
 // ノード座標（グリッド）をgeometry_msgs::msg::PoseStamped（m単位のワールド座標系）に変換
 geometry_msgs::msg::PoseStamped Astar::node_to_pose(const Node_ node)
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-
-=======
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
     /* グリッド座標をRviz表示用の座標系に変換:
     1. グリッド中心座標計算
     2. マップ原点を加算 */
@@ -444,20 +272,6 @@ geometry_msgs::msg::PoseStamped Astar::node_to_pose(const Node_ node)
     // (node.x + 0.5) → グリッドセルの中央位置を算出
     // resolution_ → 1セルあたりのメートル単位の大きさ
     // origin_x_ → マップの原点X座標（通常はマップ左下）
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
-    pose.pose.position.x = origin_x_ + (node.x + 0.5) * resolution_;
-    // Y座標変換：グリッド位置 → 実世界座標
-    // (node.y + 0.5) → グリッドセルの中央位置を算出
-    // origin_y_ → マップの原点Y座標
-    pose.pose.position.y = origin_y_ + (node.y + 0.5) * resolution_;
-    // 座標系の指定（通常はマップ座標系）
-    pose.header.frame_id = "map";
-    return pose;
-<<<<<<< HEAD
-=======
     pose.pose.position.x = origin_x_ + (node.x ) * resolution_;
     // Y座標変換：グリッド位置 → 実世界座標
     // (node.y + 0.5) → グリッドセルの中央位置を算出
@@ -467,30 +281,16 @@ geometry_msgs::msg::PoseStamped Astar::node_to_pose(const Node_ node)
     pose.header.frame_id = "map";
     pose.header.stamp = clock_.now(); // タイムスタンプ追加
     return pose;
->>>>>>> Stashed changes
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
 }
 
 
 // openリスト内で最もf値が小さいノードを取得する関数
 Node_ Astar::select_min_f()
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-{
-<<<<<<< HEAD
-=======
-=======
 {   
     if (open_list_.empty()) {
         RCLCPP_ERROR(this->get_logger(), "Open list is empty, cannot select minimum f-value");
         throw std::runtime_error("Open list is empty");
     }
->>>>>>> abe
-=======
-{
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
     /* オープンリスト内で最小f値のノードを選択:
     1. std::min_elementで最小要素検索
     2. リストから削除して返却 */
@@ -499,15 +299,6 @@ Node_ Astar::select_min_f()
     Node_ min_node = *min_it;
     open_list_.erase(min_it); // 選択したノードをオープンリストから削除
     return min_node;
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-}
->>>>>>> Stashed changes
-
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
 }
 
 
@@ -603,19 +394,7 @@ void Astar::update_list(const Node_ node)
     create_neighbor_nodes(node, neighbor_nodes);
 
     // ###### 隣接ノード ######
-<<<<<<< HEAD
-<<<<<<< HEAD
-    for(const auto& neighbor : neighbor_nodes){
-=======
-<<<<<<< Updated upstream
-
-
-=======
     for(const Node_& neighbor : neighbor_nodes){
->>>>>>> abe
-=======
-    for(const auto& neighbor : neighbor_nodes){
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
         // 障害物チェック
         if(check_obs(neighbor)) continue;
 
@@ -641,13 +420,6 @@ void Astar::update_list(const Node_ node)
         close_list_.erase(close_list_.begin() + close_index);
         open_list_.push_back(neighbor);
     }
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
     
     }
 }
@@ -787,15 +559,6 @@ int Astar::search_node_from_list(const Node_ node, std::vector<Node_>& list)
 // そのノードの情報をRvizにパブリッシュ
 void Astar::show_node_point(const Node_ node)
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-
-=======
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
     /*if (test_show_) {
         geometry_msgs::msg::PoseStamped pose = node_to_pose(node);
         current_node_ = pose;
@@ -804,24 +567,10 @@ void Astar::show_node_point(const Node_ node)
    if (test_show_) {
         geometry_msgs::msg::PointStamped point;
         point.header.frame_id = "map";
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
-        point.point.x = origin_x_ + (node.x + 0.5) * resolution_;
-        point.point.y = origin_y_ + (node.y + 0.5) * resolution_;
-        pub_node_point_->publish(point);
-    }
-<<<<<<< HEAD
-=======
         point.point.x = origin_x_ + (node.x ) * resolution_;
         point.point.y = origin_y_ + (node.y ) * resolution_;
         pub_node_point_->publish(point);
     }
->>>>>>> Stashed changes
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
 }
 
 // ［デバック用］指定されたパスをRvizに表示
@@ -829,19 +578,6 @@ void Astar::show_node_point(const Node_ node)
 // パス情報をRvizにパブリッシュ
 void Astar::show_path(nav_msgs::msg::Path& current_path)
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
-    if (test_show_) {
-        current_path.header.frame_id = "map";
-        pub_current_path_->publish(current_path);
-    }
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-
-=======
     if (test_show_) {
 
         current_path.header.frame_id = "map";
@@ -849,10 +585,6 @@ void Astar::show_path(nav_msgs::msg::Path& current_path)
         //global_path_.header.stamp = clock_.now();
         //pub_current_path_->publish(global_path_); // 全体パスを
     }
->>>>>>> Stashed changes
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
 }
 
 // 実行時間を表示（スタート時間beginを予め設定する）
@@ -868,7 +600,6 @@ void Astar::show_exe_time()
 // 各フェーズ（ウェイポイント間）について，OpenリストとCloseリストを操作しながら経路を探索
 void Astar::planning()
 {
-<<<<<<< HEAD
 
     RCLCPP_INFO(get_logger(), "Checking waypoints...");
     for (int i = 0; i < way_points_x_.size(); ++i) {
@@ -885,25 +616,6 @@ void Astar::planning()
     
 
     // ###### ウェイポイント間の経路探索 ######
-<<<<<<< HEAD
-=======
-    begin_ = clock_.now();
-    const int total_phase = way_points_x_.size();
-
-    // ###### ウェイポイント間の経路探索 ######
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
-    for (int phase = 0; phase < total_phase - 1; ++phase) {
-        start_node_ = set_way_point(phase);
-        goal_node_ = set_way_point(phase + 1);
-        
-        start_node_.f = make_heuristic(start_node_);
-
-        open_list_.clear();
-        close_list_.clear();
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
     for (int phase = 0; phase < total_phase; phase++) {
         //global_path_.poses.clear();
         start_node_ = set_way_point(phase);
@@ -914,9 +626,6 @@ void Astar::planning()
         open_list_.clear();
         close_list_.clear();
         start_node_.f = make_heuristic(start_node_);
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
         open_list_.push_back(start_node_);
         
         while (rclcpp::ok()) {
@@ -925,38 +634,14 @@ void Astar::planning()
             
             if (check_goal(current_node)) {
                 create_path(current_node);
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
                 if (test_show_) {
                     //show_path(global_path_);
                 }
->>>>>>> abe
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
                 break;
             }
     
             update_list(current_node);
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
-            if (test_show_) 
-            {  // デバッグ表示モードの場合
-                show_node_point(current_node);  // 現在のノードを表示
-                nav_msgs::msg::Path current_path;
-                create_path(current_node);  // 現在のパスを生成
-                show_path(current_path);  // 現在のパスを表示
-                rclcpp::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep_time_ * 1000)));  // 表示のための一時停止
-            }
-        }
-    }
-
-    pub_path_ ->publish(global_path_);
-<<<<<<< HEAD
-=======
             /*if (test_show_) {
                 nav_msgs::msg::Path current_path;
                 Node_ temp_node = current_node;
@@ -991,8 +676,6 @@ void Astar::planning()
         //pub_path_ ->publish(global_path_);
     }
 
->>>>>>> Stashed changes
->>>>>>> abe
 
 
 /*
@@ -1040,22 +723,6 @@ void Astar::planning()
 
     show_exe_time();
     RCLCPP_INFO_STREAM(get_logger(), "COMPLITE ASTAR PROGLAM");
-<<<<<<< Updated upstream
-    exit(0);
-<<<<<<< HEAD
-    rclcpp::shutdown();
-=======
-=======
->>>>>>> Stashed changes
->>>>>>> abe
-=======
-
-
-    show_exe_time();
-    RCLCPP_INFO_STREAM(get_logger(), "COMPLITE ASTAR PROGLAM");
-    exit(0);
-    rclcpp::shutdown();
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6
 }
 
 
@@ -1073,22 +740,7 @@ void Astar::process()
         RCLCPP_INFO_STREAM(get_logger(), "NOW LOADED MAP");
         obs_expander(); // 壁の拡張
         planning(); // グローバルパスの作成
-<<<<<<< HEAD
         exit(0);
     }
 
-<<<<<<< Updated upstream
 }
-=======
-}
-<<<<<<< HEAD
-
-=======
->>>>>>> Stashed changes
->>>>>>> abe
-=======
-    }
-
-}
-
->>>>>>> 34d755d91456c3df8feffe402ee154d9cd5154c6

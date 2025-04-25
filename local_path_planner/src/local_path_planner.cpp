@@ -104,7 +104,7 @@ DWAPlanner::DWAPlanner() : Node("local_path_planner"), clock_(RCL_ROS_TIME)
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-    // ####### Subscriber #######
+    // ####### Subscriber ######
     sub_local_goal_ = this->create_subscription<geometry_msgs::msg::PointStamped>("/local_goal", 10,
     [this](const geometry_msgs::msg::PointStamped::SharedPtr msg) {this->local_goal_callback(msg);});
     sub_obs_poses_ = this->create_subscription<geometry_msgs::msg::PoseArray>("/obstacle_points", 10,
@@ -123,7 +123,6 @@ void DWAPlanner::local_goal_callback(const geometry_msgs::msg::PointStamped::Sha
     geometry_msgs::msg::TransformStamped transform;
     try
     {
-<<<<<<< HEAD
         if (!tf_buffer_->canTransform(
                 "base_link",
                 msg->header.frame_id,
@@ -176,8 +175,6 @@ void DWAPlanner::process()
 {
     double velocity = 0.0;
     double yawrate = 0.0;
-
-<<<<<<< HEAD
     // ==== 現在のロボットの推定位置をTFから取得 ====
     geometry_msgs::msg::TransformStamped tf;
     try {
@@ -227,7 +224,6 @@ bool DWAPlanner::can_move()
     double distance_to_goal = sqrt(dx * dx + dy * dy);
 
     //RCLCPP_INFO(this->get_logger(), "local_goal   :point.x = %f,point.y = %f",local_goal_.point.x,local_goal_.point.y);
-
     // 目標地点に到達しているか判定
     if (distance_to_goal < goal_tolerance_) {
         RCLCPP_INFO(this->get_logger(), "Goal reached!");
@@ -275,7 +271,6 @@ std::vector<double> DWAPlanner::calc_final_input()
             //} else {
             //    RCLCPP_WARN(this->get_logger(), "Trajectory is empty for v=%f, w=%f", v, w);
             //}
-
 
 
             trajectories.push_back(traj);
@@ -370,7 +365,6 @@ std::vector<State> DWAPlanner::calc_traj(const double velocity, const double yaw
 
     state.velocity = velocity;
     state.yawrate = yawrate;
-
     double time = 0.0;
     while (time <= predict_time_) {
         // 仮想ロボットの状態を更新
@@ -455,6 +449,7 @@ double DWAPlanner::calc_dist_eval(const std::vector<State>& traj)
 {
     if (traj.empty()) return 0.0;
     if (obs_poses_.poses.empty()) return 0.0;
+
 
     double min_dist = 1e6; // 初期値（非常に大きな値）
 
