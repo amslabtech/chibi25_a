@@ -37,7 +37,11 @@ void ObstacleDetector::scan_obstacle()
     obstacle_point.header.frame_id = "base_link";
    
     // 簡単な障害物検出 (最短距離の点を取得)
+<<<<<<< Updated upstream
     float min_distance = scan->range_max;
+=======
+    float min_distance = scan.range_max;
+>>>>>>> Stashed changes
     float min_angle = 0.0;
     for (size_t i = 0; i < scan->ranges.size(); ++i) {
         float distance = scan->ranges[i];
