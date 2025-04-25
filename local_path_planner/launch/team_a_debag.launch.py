@@ -50,7 +50,7 @@ def generate_launch_description():
             arguments=['-d','./src/chibi25_a/local_path_planner/launch/Rviz_config.rviz'],
         ),
         ExecuteProcess(
-            cmd=['ros2', 'bag', 'play', '/home/user/ws/src/chibi25_a/local_path_planner/bagfiles/map_bag','--clock'],
+            cmd=['ros2', 'bag', 'play', '/home/user/ws/src/chibi25_a/bagfiles/map_bag','--clock'],
             output='screen'
         )
     ])

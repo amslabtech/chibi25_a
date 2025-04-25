@@ -118,9 +118,6 @@ private:
     double search_range_;       // 評価関数distで探索する範囲 [m]
     std::string robot_frame_;   // base_link
 
-    double roomba_now_x;
-    double roomba_now_y;
-
     // msgの受け取りフラグ
     bool flag_local_goal_ = false;
     bool flag_obs_poses_  = false;
