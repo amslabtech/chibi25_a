@@ -742,5 +742,4 @@ void Astar::process()
         planning(); // グローバルパスの作成
         exit(0);
     }
-
-<<<<<<< HEAD
+}
