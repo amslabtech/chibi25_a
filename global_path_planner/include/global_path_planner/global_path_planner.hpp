@@ -21,6 +21,7 @@ struct Node_ {
     int    y = 0;
     int    parent_x = -1;
     int    parent_y = -1;
+    double cost = 0.0;
     double f = 0.0;
 };
 

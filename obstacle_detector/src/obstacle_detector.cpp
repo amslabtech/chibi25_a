@@ -9,7 +9,7 @@ ObstacleDetector::ObstacleDetector() : Node("ObstacleDetector")
     // this->declare_parameter("hz", &LocalGoalCreator::getOdomFreq());  // デフォルト値10Hz
     this->declare_parameter("hz_", 10);
     this->declare_parameter("laser_step", 1);  // デフォルト値 1
-    this->declare_parameter("robot_frame", std::string("map"));  // yamlファイルで定義済みなので15行目のみで良いのでは？
+    this->declare_parameter("robot_frame", std::string("base_link"));  // yamlファイルで定義済みなので15行目のみで良いのでは？
     this->declare_parameter("ignore_dist", 0.5);  // デフォルト値 0.5m。あとで変わる？
 
     this->get_parameter("hz", hz_);
@@ -53,11 +53,11 @@ void ObstacleDetector::scan_obstacle()
 {
     // RCLCPP_INFO(this->get_logger(), "Check Point 5.");
     if (!laserscan_.has_value()) {
-        RCLCPP_WARN(this->get_logger(), "laserscan_ is empty");
+        //RCLCPP_WARN(this->get_logger(), "laserscan_ is empty");
         return;
     }
     auto scan = laserscan_.value();
-    RCLCPP_INFO(this->get_logger(), "Scan angle range: min=%.3f, max=%.3f", scan.angle_min, scan.angle_max);
+    //RCLCPP_INFO(this->get_logger(), "Scan angle range: min=%.3f, max=%.3f", scan.angle_min, scan.angle_max);
    
     geometry_msgs::msg::PoseArray pose_array;
     pose_array.header.stamp = this->get_clock()->now();
@@ -73,7 +73,7 @@ void ObstacleDetector::scan_obstacle()
         float distance = scan.ranges[i];
         float angle = scan.angle_min + i * scan.angle_increment;
         // RCLCPP_INFO(this->get_logger(), "Scan angle range: min=%.3f, max=%.3f, increment=%.5f", scan.angle_min, scan.angle_max, scan.angle_increment);
-        RCLCPP_INFO(this->get_logger(), "i: %lu, distance: %.3f, angle: %.3f", i, distance, angle);  // 柱無視デバック用
+        //RCLCPP_INFO(this->get_logger(), "i: %lu, distance: %.3f, angle: %.3f", i, distance, angle);  // 柱無視デバック用
        
         // 無視すべき柱をスキップ
         if (is_ignore_scan(distance, angle)) continue;
@@ -134,10 +134,10 @@ bool ObstacleDetector::is_ignore_scan(float distance, float angle)
         float angle_diff = std::abs(normalize_angle(angle_from_front - pillar_angles[i]));
         float dist_diff = std::abs(distance - pillar_dists[i]);
 
-        RCLCPP_WARN(this->get_logger(), "pillar_angle=%.3f. angle=%.3f -> angle_diff = %.3f, dist_diff = %.3f", pillar_angles[i], angle, angle_diff, dist_diff);
+        //RCLCPP_WARN(this->get_logger(), "pillar_angle=%.3f. angle=%.3f -> angle_diff = %.3f, dist_diff = %.3f", pillar_angles[i], angle, angle_diff, dist_diff);
 
         if (dist_diff < DIST_TOLERANCE && angle_diff < ANGLE_TOLERANCE) {
-            RCLCPP_INFO(this->get_logger(), "Ignoring pillar at dist = %.2f angle = %.2f", distance, angle);
+            //RCLCPP_INFO(this->get_logger(), "Ignoring pillar at dist = %.2f angle = %.2f", distance, angle);
             return true; // 無視する
         }
     }

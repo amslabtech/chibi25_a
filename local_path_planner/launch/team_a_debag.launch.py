@@ -51,10 +51,10 @@ def generate_launch_description():
             executable='rviz2',
             arguments=['-d','./src/chibi25_a/local_path_planner/launch/Rviz_config.rviz'],
         ),
-        ExecuteProcess(
-            cmd=['ros2', 'bag', 'play', '/home/user/ws/src/chibi25_a/map','--clock'],
-            output='screen',
-        ),
+        # ExecuteProcess(
+        #     cmd=['ros2', 'bag', 'play', '/home/user/ws/src/chibi25_a/bag/a_bagfile2','--clock'],
+        #     output='screen',
+        # ),
                 LifecycleNode(
             package='nav2_map_server',
             executable='map_server',
@@ -67,7 +67,7 @@ def generate_launch_description():
         ),
 
         TimerAction(
-            period=1.0,  # 秒数は状況に応じて調整（map_serverが準備できるくらい待つ）
+            period=5.0,  # 秒数は状況に応じて調整（map_serverが準備できるくらい待つ）
             actions=[
                 Node(
                     package='nav2_util',

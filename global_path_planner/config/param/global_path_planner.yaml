@@ -10,4 +10,4 @@ node_name1:
 
     # 車両マージン（ルンバの半径）
 
-    margin_: 0.3
+    margin_: 0.5

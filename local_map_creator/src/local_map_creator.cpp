@@ -21,7 +21,7 @@ LocalMapCreator::LocalMapCreator() : Node("local_map_creator")
     // --- 基本設定 ---
     // マップの基本情報(local_map_)を設定する（header, info, data）
     //   header
-    local_map_.header.frame_id = "map";   // 座標フレーム名
+    local_map_.header.frame_id = "base_link";   // 座標フレーム名
     local_map_.header.stamp = this->now();  // タイムスタンプ
 
     //   info(width, height, position.x, position.y)

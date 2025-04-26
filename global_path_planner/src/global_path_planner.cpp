@@ -8,7 +8,7 @@ Astar::Astar() : Node("team_a_path_planner"), clock_(RCL_ROS_TIME)
 {
     // ###### パラメータの宣言 ######
     //declare_parameter<double>("resolution", 0.0);       // マップの解像度（m/グリッド）
-    declare_parameter<double>("margin_", 0.3);          // 障害物拡張マージン（グリッド数）
+    declare_parameter<double>("margin_", 0.5);          // 障害物拡張マージン（グリッド数）
     declare_parameter<std::vector<double>>("way_points_x", {-0.16,16.4,17.3,0.917,-16.1,-17.1,-0.16}); // ウェイポイントX座標リスト
     declare_parameter<std::vector<double>>("way_points_y", {0.11,-0.772,13.4,14.2,15.1,1.01,0.11}); // ウェイポイントY座標リスト
     declare_parameter<bool>("test_show", false);
@@ -117,11 +117,18 @@ void Astar::obs_expand(const int index)
 
 
 // ヒューリスティック関数の計算
+// double Astar::make_heuristic(const Node_ node)
+// {
+//     /* ユークリッド距離による推定コスト計算:
+//     √[(x_goal - x)^2 + (y_goal - y)^2] */
+//     return std::hypot(node.x - goal_node_.x, node.y - goal_node_.y);
+// }
+
 double Astar::make_heuristic(const Node_ node)
 {
-    /* ユークリッド距離による推定コスト計算:
-    √[(x_goal - x)^2 + (y_goal - y)^2] */
-    return std::hypot(node.x - goal_node_.x, node.y - goal_node_.y);
+    double dx = std::abs(node.x - goal_node_.x);
+    double dy = std::abs(node.y - goal_node_.y);
+    return (std::max(dx, dy));
 }
 
 
@@ -140,76 +147,17 @@ Node_ Astar::set_way_point(int phase)
 
 // ノードをたどり，waypoint間のパスを作成．その後グローバルパスに追加
 // 参考：push_back(...) https://cpprefjp.github.io/reference/vector/vector/push_back.html
+
 void Astar::create_path(Node_ node)
 {
-    /* パス生成フロー：
-    1. ゴールノードから逆方向に親ノードを追跡
-    2. 部分パスを構築
-    3. 順序反転してグローバルパスに追加 */
-    //部分パスを初期化
-
     nav_msgs::msg::Path partial_path;
-   // partial_path.poses.clear();
-    //partial_path.poses.push_back(node_to_pose(node));
-    //// 現在のノード（最初はゴールノード）をパスに追加
-
-    // ###### パスの作成 ######
-    // スタート地点まで遡ってパス構築
-    /*while(!check_start(node)){
-
-        
-        for(const Node_& n : close_list_){
-            if(n.x == node.parent_x && n.y == node.parent_y){
-                partial_path.poses.push_back(node_to_pose(n)); // パス点追加
-                node = n;  // 親ノードに移動
-                break;
-            }
-        }
-
-    }*/
-
-/*
-    for(int i=close_list_.size()-1; i>=0; i--){
-        if(!check_same_node(close_list_[i],start_node_)){
-            if(check_parent(i-1,close_list_[i])){
-                partial_path.poses.push_back(node_to_pose(close_list_[i-1]));
-            }
-        }
-    }
-*/
-
-/*
-    geometry_msgs::msg::PoseStamped pose = node_to_pose(node);
-    partial_path.poses.push_back(pose);
-
-    Node_ current = node;
-    int count = 0;
-    while (!check_start(current) && count < 10000) {
-        bool found = false;
-        for (int i = 0; i < close_list_.size(); ++i) {
-            if (close_list_[i].x == current.parent_x && close_list_[i].y == current.parent_y) {
-                geometry_msgs::msg::PoseStamped pose = node_to_pose(close_list_[i]);
-                partial_path.poses.push_back(pose);
-                current = close_list_[i];
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            RCLCPP_WARN(get_logger(), "Parent not found!");
-            break;
-        }
-        count++;
-    }
-*/
     partial_path.header.frame_id = "map";
+
     std::vector<Node_> path;
     Node_ current = node;
-std::cout << "Path " << current.x << " " << current.y << std::endl;
-    // 経路復元
+
     while (!check_start(current)) {
         bool found = false;
-        // close_list_を逆順に探索 (重要)
         for (int i = close_list_.size() - 1; i >= 0; --i) {
             if (close_list_[i].x == current.parent_x && close_list_[i].y == current.parent_y) {
                 path.push_back(close_list_[i]);
@@ -224,40 +172,20 @@ std::cout << "Path " << current.x << " " << current.y << std::endl;
         }
     }
 
-    // パス順序反転（スタート→ゴール）
-    //std::reverse(partial_path.poses.begin(), partial_path.poses.end());
-    // グローバルパスにマージ
+    std::reverse(path.begin(), path.end());
 
-
-    std::reverse(path.begin(), path.end()); // 順序を反転
-
-    // PoseStamped 変換
     for (const auto& n : path) {
-        geometry_msgs::msg::PoseStamped pose = node_to_pose(n);
-        partial_path.poses.push_back(pose);
+        partial_path.poses.push_back(node_to_pose(n));
     }
 
-    /*
-    global_path_.poses.insert(global_path_.poses.end(),
-                             partial_path.poses.begin(),
-                             partial_path.poses.end());
-    */
-
-    global_path_.poses.push_back(node_to_pose(start_node_)); 
-
-    /*for (const auto& pose : partial_path.poses) {
-        global_path_.poses.push_back(pose);  // グローバルパスに追加
-    }*/
-
-    std::cout << "start point" << start_node_.x << " " << start_node_.y << std::endl;
-    geometry_msgs::msg::PoseStamped start_pose = node_to_pose(start_node_);
-    global_path_.poses.push_back(start_pose);
-
-
-
-    // ###### パスの追加 ######
-
+    for (const auto& pose : partial_path.poses) {
+        global_path_.poses.push_back(pose);
+    }
 }
+
+
+
+
 
 
 // ノード座標（グリッド）をgeometry_msgs::msg::PoseStamped（m単位のワールド座標系）に変換
@@ -285,21 +213,39 @@ geometry_msgs::msg::PoseStamped Astar::node_to_pose(const Node_ node)
 
 
 // openリスト内で最もf値が小さいノードを取得する関数
+// Node_ Astar::select_min_f()
+// {   
+//     if (open_list_.empty()) {
+//         RCLCPP_ERROR(this->get_logger(), "Open list is empty, cannot select minimum f-value");
+//         throw std::runtime_error("Open list is empty");
+//     }
+//     /* オープンリスト内で最小f値のノードを選択:
+//     1. std::min_elementで最小要素検索
+//     2. リストから削除して返却 */
+//     std::vector<Node_>::iterator min_it = std::min_element(open_list_.begin(), open_list_.end(),
+//         [](const Node_& a, const Node_& b){ return a.f < b.f; });
+//     Node_ min_node = *min_it;
+//     open_list_.erase(min_it); // 選択したノードをオープンリストから削除
+//     return min_node;
+// }
+
+//修正版
 Node_ Astar::select_min_f()
-{   
+{
     if (open_list_.empty()) {
         RCLCPP_ERROR(this->get_logger(), "Open list is empty, cannot select minimum f-value");
         throw std::runtime_error("Open list is empty");
     }
-    /* オープンリスト内で最小f値のノードを選択:
-    1. std::min_elementで最小要素検索
-    2. リストから削除して返却 */
-    std::vector<Node_>::iterator min_it = std::min_element(open_list_.begin(), open_list_.end(),
-        [](const Node_& a, const Node_& b){ return a.f < b.f; });
+
+    // 最小f値ノードを探す
+    auto min_it = std::min_element(open_list_.begin(), open_list_.end(),
+                                   [](const Node_& a, const Node_& b) { return a.f < b.f; });
+
     Node_ min_node = *min_it;
-    open_list_.erase(min_it); // 選択したノードをオープンリストから削除
+    open_list_.erase(min_it); // ちゃんと一番良いやつだけ抜き取る
     return min_node;
 }
+
 
 
 // スタートノードの場合，trueを返す
@@ -316,6 +262,14 @@ bool Astar::check_goal(const Node_ node)
     /* ゴールノード判定 */
     return node.x == goal_node_.x && node.y == goal_node_.y;
 }
+
+//修正版
+// bool Astar::check_goal(const Node_ node)
+// {
+//     int dx = std::abs(node.x - goal_node_.x);
+//     int dy = std::abs(node.y - goal_node_.y);
+//     return (dx <= 1 && dy <= 1); // 1グリッド以内ならゴール到達とみなす
+// }
 
 
 // 2つが同じノードである場合，trueを返す
@@ -382,47 +336,62 @@ bool Astar::check_obs(const Node_ node)
 // 隣接ノードを計算し，障害物を避けつつ，リスト内のノードを適切に追加・更新
 // 複数の変数への代入はstd::tie(...)を使用すると便利 https://minus9d.hatenablog.com/entry/2015/05/24/133253
 // リスト更新処理
+// void Astar::update_list(const Node_ node)
+// {
+//     std::vector<Node_> neighbor_nodes;
+//     create_neighbor_nodes(node, neighbor_nodes);
+
+//     for (const Node_& neighbor : neighbor_nodes) {
+//         if (check_obs(neighbor)) continue;
+
+//         int open_index, close_index;
+//         std::tie(open_index, close_index) = search_node(neighbor);
+
+//         if (open_index != -1) {
+//             // Openリストに同じ座標のノードがある場合、コストが小さいなら更新
+//             if (neighbor.f < open_list_[open_index].f) {
+//                 open_list_[open_index] = neighbor;
+//             }
+//         } else if (close_index != -1) {
+//             // Closeリストに同じ座標のノードがある場合、無視（戻さない）
+//             continue;
+//         } else {
+//             // どこにもなければ新規追加
+//             open_list_.push_back(neighbor);
+//         }
+//     }
+// }
+
+//修正版
 void Astar::update_list(const Node_ node)
 {
-    /* 隣接ノード評価:
-    1. 8方向の隣接ノード生成
-    2. 各ノードの有効性チェック
-    3. リスト状態に応じて更新 */
-
-    // 隣接ノードを宣言
     std::vector<Node_> neighbor_nodes;
     create_neighbor_nodes(node, neighbor_nodes);
 
-    // ###### 隣接ノード ######
-    for(const Node_& neighbor : neighbor_nodes){
-        // 障害物チェック
-        if(check_obs(neighbor)) continue;
+    for (const Node_& neighbor : neighbor_nodes) {
+        if (check_obs(neighbor)) continue;
 
-        /*int open_index = check_list(neighbor, open_list_);
+        int open_index = check_list(neighbor, open_list_);
         int close_index = check_list(neighbor, close_list_);
 
-        if(open_index == -1 && close_index == -1){
-            open_list_.push_back(neighbor); // 新規ノード追加
+        if (open_index != -1) {
+            // Openに存在 → もっといい経路なら更新
+            if (neighbor.f < open_list_[open_index].f) {
+                open_list_[open_index] = neighbor;
+            }
+        } else if (close_index != -1) {
+            // Closeに存在 → 無視
+            continue;
+        } else {
+            // どこにもなければ新規追加
+            open_list_.push_back(neighbor);
         }
-        else if(open_index != -1 && neighbor.f < open_list_[open_index].f){
-            open_list_[open_index] = neighbor; // コスト低い経路で更新
-        }*/
-
-        //auto [open_index, close_index] = search_node(neighbor);
-        int open_index, close_index;
-        std::tie(open_index, close_index) = search_node(neighbor);
-        
-        if (open_index == -1 && close_index == -1) {
-            open_list_.push_back(neighbor);  // 新しいノードの場合、オープンリストに追加
-        } else if (open_index != -1 && neighbor.f < open_list_[open_index].f) {
-            open_list_[open_index] = neighbor;  // より良いパスが見つかった場合、更新
-        } else if (close_index != -1 && neighbor.f < close_list_[close_index].f) {
-        close_list_.erase(close_list_.begin() + close_index);
-        open_list_.push_back(neighbor);
-    }
-    
     }
 }
+
+
+
+
 
 
 // 現在のノードを基に隣接ノードを作成
@@ -505,16 +474,15 @@ Node_ Astar::get_neighbor_node(const Node_ node, const Motion_ motion)
     Node_ neighbor;
     neighbor.x = node.x + motion.dx;
     neighbor.y = node.y + motion.dy;
-    //neighbor.cost = node.cost + motion.cost;
-    //neighbor.f = neighbor.cost + make_heuristic(neighbor);
     neighbor.parent_x = node.x;
     neighbor.parent_y = node.y;
-    // 累積コスト (g) を計算: 現在ノードのf値からヒューリスティック値を引く
-    double g = node.f - make_heuristic(node);
-    // 隣接ノードの総コスト (f) を計算: g + 移動コスト + ヒューリスティック値
-    neighbor.f = g + motion.cost + make_heuristic(neighbor);
+
+    neighbor.cost = node.cost + motion.cost;
+    neighbor.f = neighbor.cost + make_heuristic(neighbor);
+
     return neighbor;
 }
+
 
 // 指定されたノードがOpenリストまたはCloseリストに含まれているかを調べ，結果をインデックスとともに返す
 // 1はOpenリスト，2はCloseリストにノードが含まれていることを示す
@@ -598,132 +566,192 @@ void Astar::show_exe_time()
 // 経路計画を行う関数
 // 目的地までの経路をA*アルゴリズムを用いて計算し，グローバルパスを作成
 // 各フェーズ（ウェイポイント間）について，OpenリストとCloseリストを操作しながら経路を探索
+// void Astar::planning()
+// {
+
+//     RCLCPP_INFO(get_logger(), "Checking waypoints...");
+//     for (int i = 0; i < way_points_x_.size(); ++i) {
+//         Node_ wp = set_way_point(i);
+//         RCLCPP_INFO(get_logger(), "Waypoint %d: x = %d, y = %d", i, wp.x, wp.y);
+//     }
+
+
+
+//     global_path_.poses.clear(); // 全体パスを初期化
+//     RCLCPP_INFO(get_logger(), "Starting global path planning...");
+//     begin_ = clock_.now();
+//     const int total_phase = way_points_x_.size();
+    
+
+//     // ###### ウェイポイント間の経路探索 ######
+//     for (int phase = 0; phase < total_phase; phase++) {
+//         //global_path_.poses.clear();
+//         start_node_ = set_way_point(phase);
+//         goal_node_ = set_way_point(phase + 1);
+        
+//         //start_node_.f = make_heuristic(start_node_);
+
+//         open_list_.clear();
+//         close_list_.clear();
+//         start_node_.f = make_heuristic(start_node_);
+//         open_list_.push_back(start_node_);
+        
+//         while (rclcpp::ok()) {
+//             Node_ current_node = select_min_f();
+//             close_list_.push_back(current_node);
+            
+//             if (check_goal(current_node)) {
+//                 create_path(current_node);
+//                 if (test_show_) {
+//                     //show_path(global_path_);
+//                 }
+//                 break;
+//             }
+    
+//             update_list(current_node);
+
+//             /*if (test_show_) {
+//                 nav_msgs::msg::Path current_path;
+//                 Node_ temp_node = current_node;
+//                 current_path.poses.push_back(node_to_pose(temp_node));
+//                 int max_iter = width_ * height_;
+//                 while (!check_start(temp_node) && max_iter-- > 0) {
+//                     bool found = false;
+//                     for (int i = close_list_.size() - 1; i >= 0; i--) {
+//                         if (close_list_[i].x == temp_node.parent_x && close_list_[i].y == temp_node.parent_y) {
+//                             current_path.poses.push_back(node_to_pose(close_list_[i]));
+//                             temp_node = close_list_[i];
+//                             found = true;
+//                             break;
+//                             }
+//                     }
+//                     if (!found) break;
+//                 }
+//                 std::reverse(current_path.poses.begin(), current_path.poses.end());
+//                 show_path(current_path);
+//                 rclcpp::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep_time_ * 1000)));
+//             }*/
+
+//             /*if (test_show_) 
+//             {  // デバッグ表示モードの場合
+//                 show_node_point(current_node);  // 現在のノードを表示
+//                 nav_msgs::msg::Path current_path;
+//                 //create_path(current_node);  // 現在のパスを生成
+//                 show_path(current_path);  // 現在のパスを表示
+//                 rclcpp::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep_time_ * 1000)));  // 表示のための一時停止
+//             }*/
+//         }
+//         //pub_path_ ->publish(global_path_);
+//     }
+
+
+
+// /*
+//     // 最後のパスを表示するために、ここに追加
+//         start_node_ = set_way_point(total_phase-2);
+//         goal_node_ = set_way_point(total_phase-1);
+
+//         open_list_.clear();
+//         close_list_.clear();
+//         start_node_.f = make_heuristic(start_node_);
+//         open_list_.push_back(start_node_);
+
+//         while (rclcpp::ok()) {
+//             Node_ current_node = select_min_f();
+//             close_list_.push_back(current_node);
+
+//             if (check_goal(current_node)) {
+//                 create_path(current_node);
+//                 break;
+//             }
+
+//             update_list(current_node);
+//         }
+//         for(int i = 0; i < global_path_.poses.size(); i++){
+//          global_path_.poses[i].header.stamp = clock_.now();
+//          }
+// */
+
+
+//          // パスのタイムスタンプを更新
+//         for(auto & pose : global_path_.poses) {
+//             pose.header.stamp = clock_.now();
+//         }
+
+
+//         if (test_show_) {
+//             show_path(global_path_);
+//         }
+
+
+
+
+
+//     pub_path_ ->publish(global_path_);
+//     RCLCPP_INFO(get_logger(), "%d",global_path_.poses.size());
+//     show_exe_time();
+//     RCLCPP_INFO_STREAM(get_logger(), "COMPLITE ASTAR PROGLAM");
+// }
+
+//修正版
 void Astar::planning()
 {
-
     RCLCPP_INFO(get_logger(), "Checking waypoints...");
     for (int i = 0; i < way_points_x_.size(); ++i) {
         Node_ wp = set_way_point(i);
         RCLCPP_INFO(get_logger(), "Waypoint %d: x = %d, y = %d", i, wp.x, wp.y);
     }
 
-
-
     global_path_.poses.clear(); // 全体パスを初期化
     RCLCPP_INFO(get_logger(), "Starting global path planning...");
     begin_ = clock_.now();
     const int total_phase = way_points_x_.size();
-    
 
-    // ###### ウェイポイント間の経路探索 ######
-    for (int phase = 0; phase < total_phase; phase++) {
-        //global_path_.poses.clear();
+    for (int phase = 0; phase < total_phase - 1; phase++) {
         start_node_ = set_way_point(phase);
         goal_node_ = set_way_point(phase + 1);
-        
-        //start_node_.f = make_heuristic(start_node_);
 
         open_list_.clear();
         close_list_.clear();
         start_node_.f = make_heuristic(start_node_);
         open_list_.push_back(start_node_);
-        
+
         while (rclcpp::ok()) {
+            if (open_list_.empty()) {
+                RCLCPP_ERROR(get_logger(), "Open list is empty, path planning failed!");
+                return;
+            }
+
             Node_ current_node = select_min_f();
             close_list_.push_back(current_node);
-            
+
             if (check_goal(current_node)) {
-                create_path(current_node);
-                if (test_show_) {
-                    //show_path(global_path_);
-                }
-                break;
+                create_path(current_node);  // ゴールに着いたノードでパスを作成
+                break; // ← ゴール到達したら即終了
             }
-    
+
             update_list(current_node);
-
-            /*if (test_show_) {
-                nav_msgs::msg::Path current_path;
-                Node_ temp_node = current_node;
-                current_path.poses.push_back(node_to_pose(temp_node));
-                int max_iter = width_ * height_;
-                while (!check_start(temp_node) && max_iter-- > 0) {
-                    bool found = false;
-                    for (int i = close_list_.size() - 1; i >= 0; i--) {
-                        if (close_list_[i].x == temp_node.parent_x && close_list_[i].y == temp_node.parent_y) {
-                            current_path.poses.push_back(node_to_pose(close_list_[i]));
-                            temp_node = close_list_[i];
-                            found = true;
-                            break;
-                            }
-                    }
-                    if (!found) break;
-                }
-                std::reverse(current_path.poses.begin(), current_path.poses.end());
-                show_path(current_path);
-                rclcpp::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep_time_ * 1000)));
-            }*/
-
-            /*if (test_show_) 
-            {  // デバッグ表示モードの場合
-                show_node_point(current_node);  // 現在のノードを表示
-                nav_msgs::msg::Path current_path;
-                //create_path(current_node);  // 現在のパスを生成
-                show_path(current_path);  // 現在のパスを表示
-                rclcpp::sleep_for(std::chrono::milliseconds(static_cast<int>(sleep_time_ * 1000)));  // 表示のための一時停止
-            }*/
         }
-        //pub_path_ ->publish(global_path_);
     }
 
+    for (auto& pose : global_path_.poses) {
+        pose.header.stamp = clock_.now();
+    }
 
+    if (test_show_) {
+        show_path(global_path_);
+    }
 
-/*
-    // 最後のパスを表示するために、ここに追加
-        start_node_ = set_way_point(total_phase-2);
-        goal_node_ = set_way_point(total_phase-1);
+    pub_path_->publish(global_path_);
 
-        open_list_.clear();
-        close_list_.clear();
-        start_node_.f = make_heuristic(start_node_);
-        open_list_.push_back(start_node_);
-
-        while (rclcpp::ok()) {
-            Node_ current_node = select_min_f();
-            close_list_.push_back(current_node);
-
-            if (check_goal(current_node)) {
-                create_path(current_node);
-                break;
-            }
-
-            update_list(current_node);
-        }
-        for(int i = 0; i < global_path_.poses.size(); i++){
-         global_path_.poses[i].header.stamp = clock_.now();
-         }
-*/
-
-
-         // パスのタイムスタンプを更新
-        for(auto & pose : global_path_.poses) {
-            pose.header.stamp = clock_.now();
-        }
-
-
-        if (test_show_) {
-            show_path(global_path_);
-        }
-
-
-
-
-
-    pub_path_ ->publish(global_path_);
-
+    RCLCPP_INFO(get_logger(), "Global path published. Total points: %ld", global_path_.poses.size());
     show_exe_time();
     RCLCPP_INFO_STREAM(get_logger(), "COMPLITE ASTAR PROGLAM");
 }
+
+
+
+
 
 
 // map_callback()関数で実行する関数
