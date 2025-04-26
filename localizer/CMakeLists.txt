@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(team_localizer)
+project(team_a_localizer)
 
 # find dependencies
 find_package(ament_cmake_auto REQUIRED)

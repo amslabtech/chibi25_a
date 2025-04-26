@@ -743,4 +743,4 @@ void Astar::process()
         exit(0);
     }
 
-}
+<<<<<<< HEAD

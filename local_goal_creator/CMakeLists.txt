@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(team_local_goal_creator)
-
+project(team_a_local_goal_creator)
 # find dependencies
 find_package(ament_cmake_auto REQUIRED)
 # package.xmlのdependをチェックして自動的にfind_packageしてくれる

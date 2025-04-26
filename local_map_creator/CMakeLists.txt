@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(local_map_creator)
-
+project(team_a_local_map_creator)
 # find dependencies
 find_package(ament_cmake_auto REQUIRED)
 # package.xmlのdependをチェックして自動的にfind_packageしてくれる
