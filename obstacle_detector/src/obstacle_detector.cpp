@@ -9,7 +9,7 @@ ObstacleDetector::ObstacleDetector() : Node("ObstacleDetector")
     // this->declare_parameter("hz", &LocalGoalCreator::getOdomFreq());  // デフォルト値10Hz
     this->declare_parameter("hz_", 10);
     this->declare_parameter("laser_step", 1);  // デフォルト値 1
-    this->declare_parameter("robot_frame", std::string("base_link"));  // yamlファイルで定義済みなので15行目のみで良いのでは？
+    this->declare_parameter("robot_frame", std::string("map"));  // yamlファイルで定義済みなので15行目のみで良いのでは？
     this->declare_parameter("ignore_dist", 0.5);  // デフォルト値 0.5m。あとで変わる？
 
     this->get_parameter("hz", hz_);

@@ -12,7 +12,7 @@ LocalMapCreator::LocalMapCreator() : Node("local_map_creator")
 
     // Subscriberの設定
     sub_obs_poses_ = this->create_subscription<geometry_msgs::msg::PoseArray>(
-        "obs_poses", 10, std::bind(&LocalMapCreator::obs_poses_callback, this, std::placeholders::_1));
+        "obstacle_poses", 10, std::bind(&LocalMapCreator::obs_poses_callback, this, std::placeholders::_1));
 
     // Publisherの設定
     pub_local_map_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(

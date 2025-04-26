@@ -124,7 +124,7 @@ void DWAPlanner::local_goal_callback(const geometry_msgs::msg::PointStamped::Sha
     try
     {
         if (!tf_buffer_->canTransform(
-                "base_link",
+                "map",
                 msg->header.frame_id,
                 msg->header.stamp,
                 tf2::durationFromSec(0.1)))

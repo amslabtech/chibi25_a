@@ -13,6 +13,6 @@ int main(int argc, char *argv[])
         rclcpp::spin_some(node);   // コールバック関数の実行
         loop_rate.sleep(); // 周期が終わるまで待つ
     }
-    // rclcpp::shutdown();
+    rclcpp::shutdown();
     return 0;
 }
